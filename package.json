@@ -1,0 +1,14 @@
+{
+  "name": "@wavs/poa-middleware",
+  "version": "0.1.0",
+  "description": "POA Middleware",
+  "author": "Lay3rLabs Team",
+  "license": "MIT",
+  "dependencies": {
+    "solhint": "^6.0.1"
+  },
+  "scripts": {
+    "lint": "solhint 'contracts/src/**/*.sol' 'contracts/test/**/*.sol' 'contracts/script/**/*.sol'",
+    "lint:fix": "solhint --fix 'contracts/src/**/*.sol' 'contracts/test/**/*.sol' 'contracts/script/**/*.sol'"
+  }
+}

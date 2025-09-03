@@ -1,6 +1,17 @@
 [profile.default]
 src = "src"
+test = "test"
+script = "script"
 out = "out"
 libs = ["lib"]
+fs_permissions = [{ access = "read-write", path = "./" }, { access = "read", path = "/root/.nodes" }]
+solc = "0.8.27"
+via-ir = true
+optimizer = true
+optimizer_runs = 100
+ # Higher number optimizes for frequent contract calls, lower number optimizes for deployment cost
 
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
+[fmt]
+line_length = 100
+multiline_func_header = "params_first"
+number_underscore = "thousands"
