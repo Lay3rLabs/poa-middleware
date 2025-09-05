@@ -6,6 +6,11 @@ import {IERC1271Upgradeable} from
 
 // TODO: many of these errors do not have test coverage.
 
+/**
+ * @title IPOAStakeRegistryErrors
+ * @author Lay3r Labs
+ * @notice Interface containing all error definitions for the POAStakeRegistry contract.
+ */
 interface IPOAStakeRegistryErrors {
     /// @notice Thrown when the lengths of the signers array and signatures array do not match.
     error LengthMismatch();
@@ -27,29 +32,39 @@ interface IPOAStakeRegistryErrors {
     error OperatorNotRegistered();
 }
 
+/**
+ * @title IPOAStakeRegistryTypes
+ * @author Lay3r Labs
+ * @notice Interface containing all type definitions for the POAStakeRegistry contract.
+ */
 interface IPOAStakeRegistryTypes {}
 
+/**
+ * @title IPOAStakeRegistryEvents
+ * @author Lay3r Labs
+ * @notice Interface containing all event definitions for the POAStakeRegistry contract.
+ */
 interface IPOAStakeRegistryEvents is IPOAStakeRegistryTypes {
-    /*
+    /**
      * @notice Emitted when the system registers an operator.
      * @param operator The address of the registered operator.
      */
     event OperatorRegistered(address indexed operator);
 
-    /*
+    /**
      * @notice Emitted when the system deregisters an operator.
      * @param operator The address of the deregistered operator.
      */
     event OperatorDeregistered(address indexed operator);
 
-    /*
+    /**
      * @notice Emitted when the weight to join the operator set updates.
      * @param previous The previous minimum weight.
      * @param current The new minimumWeight.
      */
     event MinimumWeightUpdated(uint256 previous, uint256 current);
 
-    /*
+    /**
      * @notice Emitted when the system updates an operator's weight.
      * @param operator The address of the operator updated.
      * @param oldWeight The operator's weight before the update.
@@ -57,19 +72,20 @@ interface IPOAStakeRegistryEvents is IPOAStakeRegistryTypes {
      */
     event OperatorWeightUpdated(address indexed operator, uint256 oldWeight, uint256 newWeight);
 
-    /*
+    /**
      * @notice Emitted when the system updates the total weight.
      * @param oldTotalWeight The total weight before the update.
      * @param newTotalWeight The total weight after the update.
      */
     event TotalWeightUpdated(uint256 oldTotalWeight, uint256 newTotalWeight);
 
-    /*
+    /**
      * @notice Emits when setting a new threshold weight.
+     * @param thresholdWeight The new threshold weight.
      */
     event ThresholdWeightUpdated(uint256 thresholdWeight);
 
-    /*
+    /**
      * @notice Emitted when an operator's signing key is updated.
      * @param operator The address of the operator whose signing key was updated.
      * @param updateBlock The block number at which the signing key was updated.
@@ -84,6 +100,11 @@ interface IPOAStakeRegistryEvents is IPOAStakeRegistryTypes {
     );
 }
 
+/**
+ * @title IPOAStakeRegistry
+ * @author Lay3r Labs
+ * @notice Interface containing all functions for the POAStakeRegistry contract.
+ */
 interface IPOAStakeRegistry is
     IPOAStakeRegistryErrors,
     IPOAStakeRegistryEvents,
@@ -91,14 +112,14 @@ interface IPOAStakeRegistry is
 {
     /* ACTIONS */
 
-    /*
+    /**
      * @notice Registers a new operator using a provided operator address and weight.
      * @param operator The address of the operator to register.
      * @param weight The weight of the operator.
      */
     function registerOperator(address operator, uint256 weight) external;
 
-    /*
+    /**
      * @notice Deregisters an existing operator.
      * @param operator The address of the operator to deregister.
      */
@@ -106,7 +127,7 @@ interface IPOAStakeRegistry is
         address operator
     ) external;
 
-    /*
+    /**
      * @notice Updates the signing key for an operator.
      * @param newSigningKey The new signing key to set for the operator.
      * @dev Only callable by the operator themselves.
@@ -115,18 +136,15 @@ interface IPOAStakeRegistry is
         address newSigningKey
     ) external;
 
-    /*
+    /**
      * @notice Updates the weight for an operator.
      * @param operator The address of the operator to update the weight for.
      * @param weight The new weight to set for the operator.
      * @dev Only callable by owner.
      */
-    function updateOperatorWeight(
-        address operator,
-        uint256 weight
-    ) external;
+    function updateOperatorWeight(address operator, uint256 weight) external;
 
-    /*
+    /**
      * @notice Updates the weight an operator must have to join the operator set.
      * @param newMinimumWeight The new weight an operator must have to join the operator set.
      */
@@ -134,7 +152,7 @@ interface IPOAStakeRegistry is
         uint256 newMinimumWeight
     ) external;
 
-    /*
+    /**
      * @notice Sets a new cumulative threshold weight for message validation.
      * @param thresholdWeight The updated threshold weight required to validate a message.
      */
@@ -144,7 +162,7 @@ interface IPOAStakeRegistry is
 
     /* VIEW */
 
-    /*
+    /**
      * @notice Retrieves the latest signing key for a given operator.
      * @param operator The address of the operator.
      * @return The latest signing key of the operator.
@@ -153,7 +171,7 @@ interface IPOAStakeRegistry is
         address operator
     ) external view returns (address);
 
-    /*
+    /**
      * @notice Retrieves the signing key for an operator at a specific block.
      * @param operator The address of the operator.
      * @param blockNumber The block number to query at.
@@ -164,7 +182,7 @@ interface IPOAStakeRegistry is
         uint256 blockNumber
     ) external view returns (address);
 
-    /*
+    /**
      * @notice Retrieves the last recorded weight for a given operator.
      * @param operator The address of the operator.
      * @return The latest weight of the operator.
@@ -173,19 +191,19 @@ interface IPOAStakeRegistry is
         address operator
     ) external view returns (uint256);
 
-    /*
+    /**
      * @notice Retrieves the last recorded total weight across all operators.
      * @return The latest total weight.
      */
     function getLastCheckpointTotalWeight() external view returns (uint256);
 
-    /*
+    /**
      * @notice Retrieves the last recorded threshold weight.
      * @return The latest threshold weight.
      */
     function getLastCheckpointThresholdWeight() external view returns (uint256);
 
-    /*
+    /**
      * @notice Returns whether an operator is currently registered.
      * @param operator The operator address to check.
      * @return Whether the operator is registered.
@@ -194,13 +212,13 @@ interface IPOAStakeRegistry is
         address operator
     ) external view returns (bool);
 
-    /*
+    /**
      * @notice Returns the minimum weight required for operator participation.
      * @return The minimum weight threshold.
      */
     function minimumWeight() external view returns (uint256);
 
-    /*
+    /**
      * @notice Retrieves the operator's weight at a specific block number.
      * @param operator The address of the operator.
      * @param blockNumber The block number to query at.
@@ -211,7 +229,7 @@ interface IPOAStakeRegistry is
         uint32 blockNumber
     ) external view returns (uint256);
 
-    /*
+    /**
      * @notice Retrieves the operator's weight.
      * @param operator The address of the operator.
      * @return The current weight of the operator.
@@ -220,7 +238,7 @@ interface IPOAStakeRegistry is
         address operator
     ) external view returns (uint256);
 
-    /*
+    /**
      * @notice Retrieves the total weight at a specific block number.
      * @param blockNumber The block number to query at.
      * @return The total weight at the given block.
@@ -229,7 +247,7 @@ interface IPOAStakeRegistry is
         uint32 blockNumber
     ) external view returns (uint256);
 
-    /*
+    /**
      * @notice Retrieves the threshold weight at a specific block number.
      * @param blockNumber The block number to query at.
      * @return The threshold weight at the given block.

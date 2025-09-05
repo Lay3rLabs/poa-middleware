@@ -5,15 +5,17 @@ import {CheckpointsUpgradeable} from
     "openzeppelin-contracts-upgradeable/contracts/utils/CheckpointsUpgradeable.sol";
 import {IPOAStakeRegistry} from "./interfaces/IPOAStakeRegistry.sol";
 
+/**
+ * @title Storage variables for the `POAStakeRegistry` contract.
+ * @author Layr Labs, Inc.
+ * @notice This storage contract is separate from the logic to simplify the upgrade process.
+ */
 abstract contract POAStakeRegistryStorage is IPOAStakeRegistry {
     /// @notice The size of the current operator set
     uint256 internal _totalOperators;
 
     /// @notice Specifies the weight required to become an operator
     uint256 internal _minimumWeight;
-
-    /// @notice Holds the address of the service manager
-    address internal _serviceManager;
 
     /// @notice Maps an operator to their signing key history using checkpoints
     mapping(address => CheckpointsUpgradeable.History) internal _operatorSigningKeyHistory;
