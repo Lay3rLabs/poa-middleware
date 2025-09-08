@@ -30,6 +30,10 @@ interface IPOAStakeRegistryErrors {
     error OperatorAlreadyRegistered();
     /// @notice Thrown when de-registering or updating the stake for an unregisted operator.
     error OperatorNotRegistered();
+    /// @notice Thrown when the quorum is invalid.
+    error InvalidQuorum();
+    /// @notice Thrown when the quorum is insufficient.
+    error InsufficientQuorum();
 }
 
 /**
@@ -98,6 +102,13 @@ interface IPOAStakeRegistryEvents is IPOAStakeRegistryTypes {
         address indexed newSigningKey,
         address oldSigningKey
     );
+
+    /**
+     * @notice Emitted when the quorum is updated.
+     * @param quorumNumerator The new quorum numerator.
+     * @param quorumDenominator The new quorum denominator.
+     */
+    event QuorumUpdated(uint256 quorumNumerator, uint256 quorumDenominator);
 }
 
 /**
@@ -160,6 +171,13 @@ interface IPOAStakeRegistry is
         uint256 thresholdWeight
     ) external;
 
+    /**
+     * @notice Updates the quorum configuration.
+     * @param quorumNumerator The new quorum numerator.
+     * @param quorumDenominator The new quorum denominator.
+     */
+    function updateQuorum(uint256 quorumNumerator, uint256 quorumDenominator) external;
+
     /* VIEW */
 
     /**
@@ -202,6 +220,13 @@ interface IPOAStakeRegistry is
      * @return The latest threshold weight.
      */
     function getLastCheckpointThresholdWeight() external view returns (uint256);
+
+    /**
+     * @notice Retrieves the last recorded quorum.
+     * @return The latest quorum numerator.
+     * @return The latest quorum denominator.
+     */
+    function getLastCheckpointQuorum() external view returns (uint256, uint256);
 
     /**
      * @notice Returns whether an operator is currently registered.
@@ -255,4 +280,14 @@ interface IPOAStakeRegistry is
     function getLastCheckpointThresholdWeightAtBlock(
         uint32 blockNumber
     ) external view returns (uint256);
+
+    /**
+     * @notice Retrieves the quorum at a specific block number.
+     * @param blockNumber The block number to query at.
+     * @return The quorum numerator at the given block.
+     * @return The quorum denominator at the given block.
+     */
+    function getLastCheckpointQuorumAtBlock(
+        uint32 blockNumber
+    ) external view returns (uint256, uint256);
 }

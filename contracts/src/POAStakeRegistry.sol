@@ -20,20 +20,19 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
     using SignatureCheckerUpgradeable for address;
     using CheckpointsUpgradeable for CheckpointsUpgradeable.History;
 
-    /// @notice Initializes the contract with the given parameters.
-    /// @param thresholdWeight The threshold weight in basis points.
+    /**
+     * @notice Initializes the contract with the given parameters.
+     * @param thresholdWeight The threshold weight in basis points.
+     * @param quorumNumerator The new quorum numerator.
+     * @param quorumDenominator The new quorum denominator.
+     */
     function initialize(
-        uint256 thresholdWeight
+        uint256 thresholdWeight,
+        uint256 quorumNumerator,
+        uint256 quorumDenominator
     ) external initializer {
-        __POAStakeRegistry_init(thresholdWeight);
-    }
-
-    /// @notice Initializes state for the StakeRegistry
-    /// @param thresholdWeight The threshold weight in basis points.
-    function __POAStakeRegistry_init( // solhint-disable-line func-name-mixedcase
-        uint256 thresholdWeight
-    ) internal onlyInitializing {
         _updateStakeThreshold(thresholdWeight);
+        _updateQuorum(quorumNumerator, quorumDenominator);
         __Ownable_init();
     }
 
@@ -76,6 +75,11 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         uint256 thresholdWeight
     ) external onlyOwner {
         _updateStakeThreshold(thresholdWeight);
+    }
+
+    /// @inheritdoc IPOAStakeRegistry
+    function updateQuorum(uint256 quorumNumerator, uint256 quorumDenominator) external onlyOwner {
+        _updateQuorum(quorumNumerator, quorumDenominator);
     }
 
     /**
@@ -127,6 +131,11 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
     }
 
     /// @inheritdoc IPOAStakeRegistry
+    function getLastCheckpointQuorum() external view returns (uint256, uint256) {
+        return (_quorumNumeratorHistory.latest(), _quorumDenominatorHistory.latest());
+    }
+
+    /// @inheritdoc IPOAStakeRegistry
     function getOperatorWeightAtBlock(
         address operator,
         uint32 blockNumber
@@ -149,6 +158,16 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
     }
 
     /// @inheritdoc IPOAStakeRegistry
+    function getLastCheckpointQuorumAtBlock(
+        uint32 blockNumber
+    ) external view returns (uint256, uint256) {
+        return (
+            _quorumNumeratorHistory.getAtBlock(blockNumber),
+            _quorumDenominatorHistory.getAtBlock(blockNumber)
+        );
+    }
+
+    /// @inheritdoc IPOAStakeRegistry
     function operatorRegistered(
         address operator
     ) external view returns (bool) {
@@ -167,8 +186,10 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         return _operatorWeightHistory[operator].latest();
     }
 
-    /// @notice Updates the stake threshold weight and records the history.
-    /// @param thresholdWeight The new threshold weight to set and record in the history.
+    /**
+     * @notice Updates the stake threshold weight and records the history.
+     * @param thresholdWeight The new threshold weight to set and record in the history.
+     */
     function _updateStakeThreshold(
         uint256 thresholdWeight
     ) internal {
@@ -176,8 +197,27 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         emit ThresholdWeightUpdated(thresholdWeight);
     }
 
-    /// @notice Updates the weight an operator must have to join the operator set
-    /// @param newMinimumWeight The new weight an operator must have to join the operator set
+    /**
+     * @notice Updates the quorum numerator and records the history.
+     * @param quorumNumerator The new quorum numerator to set and record in the history.
+     * @param quorumDenominator The new quorum denominator to set and record in the history.
+     */
+    function _updateQuorum(uint256 quorumNumerator, uint256 quorumDenominator) internal {
+        if (quorumDenominator == 0) {
+            revert InvalidQuorum();
+        }
+        if (quorumNumerator > quorumDenominator) {
+            revert InvalidQuorum();
+        }
+        _quorumNumeratorHistory.push(quorumNumerator);
+        _quorumDenominatorHistory.push(quorumDenominator);
+        emit QuorumUpdated(quorumNumerator, quorumDenominator);
+    }
+
+    /**
+     * @notice Updates the weight an operator must have to join the operator set
+     * @param newMinimumWeight The new weight an operator must have to join the operator set
+     */
     function _updateMinimumWeight(
         uint256 newMinimumWeight
     ) internal {
@@ -186,8 +226,10 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         emit MinimumWeightUpdated(oldMinimumWeight, newMinimumWeight);
     }
 
-    /// @notice Internal function to deregister an operator
-    /// @param operator The operator's address to deregister
+    /**
+     * @notice Internal function to deregister an operator
+     * @param operator The operator's address to deregister
+     */
     function _deregisterOperator(
         address operator
     ) internal {
@@ -201,9 +243,11 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         emit OperatorDeregistered(operator);
     }
 
-    /// @notice registers an operator through a provided signature
-    /// @param operator The address of the operator to register
-    /// @param weight The weight of the operator
+    /**
+     * @notice Registers an operator through a provided weight
+     * @param operator The address of the operator to register
+     * @param weight The weight of the operator
+     */
     function _registerOperator(address operator, uint256 weight) internal {
         if (_operatorRegistered[operator]) {
             revert OperatorAlreadyRegistered();
@@ -215,9 +259,11 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         emit OperatorRegistered(operator);
     }
 
-    /// @notice Internal function to update an operator's signing key
-    /// @param operator The address of the operator to update the signing key for
-    /// @param newSigningKey The new signing key to set for the operator
+    /**
+     * @notice Internal function to update an operator's signing key
+     * @param operator The address of the operator to update the signing key for
+     * @param newSigningKey The new signing key to set for the operator
+     */
     function _updateOperatorSigningKey(address operator, address newSigningKey) internal {
         address oldSigningKey = address(uint160(_operatorSigningKeyHistory[operator].latest()));
         if (newSigningKey == oldSigningKey) {
@@ -227,10 +273,12 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         emit SigningKeyUpdate(operator, block.number, newSigningKey, oldSigningKey);
     }
 
-    /// @notice Updates the weight of an operator and returns the previous and current weights.
-    /// @param operator The address of the operator to update the weight of.
-    /// @param weight The weight to set for the operator.
-    /// @return delta The change in weight for the operator.
+    /**
+     * @notice Updates the weight of an operator and returns the previous and current weights.
+     * @param operator The address of the operator to update the weight of.
+     * @param weight The weight to set for the operator.
+     * @return delta The change in weight for the operator.
+     */
     function _updateOperatorWeight(address operator, uint256 weight) internal returns (int256) {
         int256 delta;
         uint256 newWeight;
@@ -253,10 +301,12 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         return delta;
     }
 
-    /// @notice Internal function to update the total weight of the stake
-    /// @param delta The change in stake applied last total weight
-    /// @return oldTotalWeight The weight before the update
-    /// @return newTotalWeight The updated weight after applying the delta
+    /**
+     * @notice Internal function to update the total weight of the stake
+     * @param delta The change in stake applied last total weight
+     * @return oldTotalWeight The weight before the update
+     * @return newTotalWeight The updated weight after applying the delta
+     */
     function _updateTotalWeight(
         int256 delta
     ) internal returns (uint256 oldTotalWeight, uint256 newTotalWeight) {
@@ -302,9 +352,11 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         _validateThresholdStake(signedWeight, referenceBlock);
     }
 
-    /// @notice Validates that the number of signers equals the number of signatures, and neither is zero.
-    /// @param signersLength The number of signers.
-    /// @param signaturesLength The number of signatures.
+    /**
+     * @notice Validates that the number of signers equals the number of signatures, and neither is zero.
+     * @param signersLength The number of signers.
+     * @param signaturesLength The number of signatures.
+     */
     function _validateSignaturesLength(
         uint256 signersLength,
         uint256 signaturesLength
@@ -317,19 +369,23 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         }
     }
 
-    /// @notice Ensures that signers are sorted in ascending order by address.
-    /// @param lastSigner The address of the last signer.
-    /// @param currentSigner The address of the current signer.
+    /**
+     * @notice Ensures that signers are sorted in ascending order by address.
+     * @param lastSigner The address of the last signer.
+     * @param currentSigner The address of the current signer.
+     */
     function _validateSortedSigners(address lastSigner, address currentSigner) internal pure {
         if (!(lastSigner < currentSigner)) {
             revert NotSorted();
         }
     }
 
-    /// @notice Validates a given signature against the signer's address and data hash.
-    /// @param signer The address of the signer to validate.
-    /// @param digest The hash of the data that is signed.
-    /// @param signature The signature to validate.
+    /**
+     * @notice Validates a given signature against the signer's address and data hash.
+     * @param signer The address of the signer to validate.
+     * @param digest The hash of the data that is signed.
+     * @param signature The signature to validate.
+     */
     function _validateSignature(
         address signer,
         bytes32 digest,
@@ -340,10 +396,12 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         }
     }
 
-    /// @notice Retrieves the operator weight for a signer, either at the last checkpoint or a specified block.
-    /// @param operator The operator to query their signing key history for
-    /// @param referenceBlock The block number to query the operator's weight at, or the maximum uint32 value for the last checkpoint.
-    /// @return The weight of the operator.
+    /**
+     * @notice Retrieves the operator weight for a signer, either at the last checkpoint or a specified block.
+     * @param operator The operator to query their signing key history for
+     * @param referenceBlock The block number to query the operator's weight at, or the maximum uint32 value for the last checkpoint.
+     * @return The weight of the operator.
+     */
     function _getOperatorSigningKey(
         address operator,
         uint32 referenceBlock
@@ -354,10 +412,12 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         return address(uint160(_operatorSigningKeyHistory[operator].getAtBlock(referenceBlock)));
     }
 
-    /// @notice Retrieves the operator weight for a signer, either at the last checkpoint or a specified block.
-    /// @param signer The address of the signer whose weight is returned.
-    /// @param referenceBlock The block number to query the operator's weight at, or the maximum uint32 value for the last checkpoint.
-    /// @return The weight of the operator.
+    /**
+     * @notice Retrieves the operator weight for a signer, either at the last checkpoint or a specified block.
+     * @param signer The address of the signer whose weight is returned.
+     * @param referenceBlock The block number to query the operator's weight at, or the maximum uint32 value for the last checkpoint.
+     * @return The weight of the operator.
+     */
     function _getOperatorWeight(
         address signer,
         uint32 referenceBlock
@@ -368,10 +428,12 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         return _operatorWeightHistory[signer].getAtBlock(referenceBlock);
     }
 
-    /// @notice Retrieve the total stake weight at a specific block or the latest if not specified.
-    /// @dev If the `referenceBlock` is the maximum value for uint32, the latest total weight is returned.
-    /// @param referenceBlock The block number to retrieve the total stake weight from.
-    /// @return The total stake weight at the given block or the latest if the given block is the max uint32 value.
+    /**
+     * @notice Retrieve the total stake weight at a specific block or the latest if not specified.
+     * @dev If the `referenceBlock` is the maximum value for uint32, the latest total weight is returned.
+     * @param referenceBlock The block number to retrieve the total stake weight from.
+     * @return The total stake weight at the given block or the latest if the given block is the max uint32 value.
+     */
     function _getTotalWeight(
         uint32 referenceBlock
     ) internal view returns (uint256) {
@@ -381,10 +443,12 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         return _totalWeightHistory.getAtBlock(referenceBlock);
     }
 
-    /// @notice Retrieves the threshold stake for a given reference block.
-    /// @param referenceBlock The block number to query the threshold stake for.
-    /// If set to the maximum uint32 value, it retrieves the latest threshold stake.
-    /// @return The threshold stake in basis points for the reference block.
+    /**
+     * @notice Retrieves the threshold stake for a given reference block.
+     * @param referenceBlock The block number to query the threshold stake for.
+     * If set to the maximum uint32 value, it retrieves the latest threshold stake.
+     * @return The threshold stake in basis points for the reference block.
+     */
     function _getThresholdStake(
         uint32 referenceBlock
     ) internal view returns (uint256) {
@@ -394,9 +458,30 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         return _thresholdWeightHistory.getAtBlock(referenceBlock);
     }
 
-    /// @notice Validates that the cumulative stake of signed messages meets or exceeds the required threshold.
-    /// @param signedWeight The cumulative weight of the signers that have signed the message.
-    /// @param referenceBlock The block number to verify the stake threshold for
+    /**
+     * @notice Retrieves the quorum for a given reference block.
+     * @param referenceBlock The block number to query the quorum for.
+     * If set to the maximum uint32 value, it retrieves the latest quorum.
+     * @return The quorum numerator at the given block.
+     * @return The quorum denominator at the given block.
+     */
+    function _getQuorum(
+        uint32 referenceBlock
+    ) internal view returns (uint256, uint256) {
+        if (!(referenceBlock < block.number)) {
+            revert InvalidReferenceBlock();
+        }
+        return (
+            _quorumNumeratorHistory.getAtBlock(referenceBlock),
+            _quorumDenominatorHistory.getAtBlock(referenceBlock)
+        );
+    }
+
+    /**
+     * @notice Validates that the cumulative stake of signed messages meets or exceeds the required threshold.
+     * @param signedWeight The cumulative weight of the signers that have signed the message.
+     * @param referenceBlock The block number to verify the stake threshold for
+     */
     function _validateThresholdStake(uint256 signedWeight, uint32 referenceBlock) internal view {
         uint256 totalWeight = _getTotalWeight(referenceBlock);
         if (signedWeight > totalWeight) {
@@ -405,6 +490,10 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         uint256 thresholdStake = _getThresholdStake(referenceBlock);
         if (thresholdStake > signedWeight) {
             revert InsufficientSignedStake();
+        }
+        (uint256 quorumNumerator, uint256 quorumDenominator) = _getQuorum(referenceBlock);
+        if (signedWeight * quorumDenominator < quorumNumerator * totalWeight) {
+            revert InsufficientQuorum();
         }
     }
 }

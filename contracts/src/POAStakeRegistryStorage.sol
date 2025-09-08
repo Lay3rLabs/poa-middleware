@@ -26,6 +26,12 @@ abstract contract POAStakeRegistryStorage is IPOAStakeRegistry {
     /// @notice Tracks the threshold bps history using checkpoints
     CheckpointsUpgradeable.History internal _thresholdWeightHistory;
 
+    /// @notice Tracks the quorum numerator history over time using checkpoints
+    CheckpointsUpgradeable.History internal _quorumNumeratorHistory;
+
+    /// @notice Tracks the quorum denominator history over time using checkpoints
+    CheckpointsUpgradeable.History internal _quorumDenominatorHistory;
+
     /// @notice Maps operator addresses to their respective stake histories using checkpoints
     mapping(address => CheckpointsUpgradeable.History) internal _operatorWeightHistory;
 
