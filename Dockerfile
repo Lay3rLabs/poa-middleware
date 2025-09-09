@@ -31,6 +31,9 @@ COPY --from=build --exclude=lib  /wavs/contracts /wavs/contracts/
 # We need this to get the original solidity source from the submodules, but nothing else (15 MB vs 60 MB for all)
 COPY --from=build --parents  /wavs/contracts/./lib/**/*.sol /wavs/contracts/
 
+# Copy node_modules from build stage (needed for forge remappings)
+COPY --from=build /wavs/node_modules /wavs/node_modules
+
 WORKDIR /wavs
 COPY ./scripts /wavs/scripts
 RUN chmod +x $(find /wavs/scripts -name '*.sh')

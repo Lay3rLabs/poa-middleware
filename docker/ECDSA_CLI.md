@@ -3,6 +3,7 @@
 ## Setup
 
 ```bash
+npm install
 docker build -t poa-middleware .
 ```
 
@@ -37,17 +38,18 @@ echo "Operator address: $OPERATOR_ADDRESS"
 AVS_KEY=$(cast wallet new --json | jq -r '.[0].private_key')
 AVS_SIGNING_ADDRESS=$(cast wallet addr --private-key "$AVS_KEY")
 echo "AVS signing address: $AVS_SIGNING_ADDRESS"
+
 docker run --rm --network host -v ./.nodes:/root/.nodes \
    --env-file .env \
    -e OPERATOR_KEY=${OPERATOR_KEY} \
    -e WAVS_SIGNING_KEY=${AVS_SIGNING_ADDRESS} \
-   wavs-middleware register WAVS_DELEGATE_AMOUNT=1000000000000000
+   poa-middleware register WAVS_DELEGATE_AMOUNT=1000000000000000
 
 docker run --rm --network host -v ./.nodes:/root/.nodes \
    --env-file .env \
-   wavs-middleware update_quorum QUORUM_NUMERATOR=3 QUORUM_DENOMINATOR=5
+   poa-middleware update_quorum QUORUM_NUMERATOR=3 QUORUM_DENOMINATOR=5
 
 docker run --rm --network host -v ./.nodes:/root/.nodes \
    --env-file .env \
-   wavs-middleware list_operators
+   poa-middleware list_operators
 ```
