@@ -54,7 +54,6 @@ contract POAStakeRegistryTest is Test {
     event OperatorDeregistered(address indexed operator);
     event OperatorWeightUpdated(address indexed operator, uint256 oldWeight, uint256 newWeight);
     event TotalWeightUpdated(uint256 oldTotalWeight, uint256 newTotalWeight);
-    event MinimumWeightUpdated(uint256 previous, uint256 current);
     event ThresholdWeightUpdated(uint256 thresholdWeight);
     event QuorumUpdated(uint256 quorumNumerator, uint256 quorumDenominator);
     event SigningKeyUpdate(
@@ -220,26 +219,6 @@ contract POAStakeRegistryTest is Test {
         assertEq(poaStakeRegistry.getOperatorWeight(operator1), 0);
 
         vm.stopPrank();
-    }
-
-    // Test minimum weight updates
-    function test_UpdateMinimumWeight() public {
-        vm.startPrank(owner);
-
-        vm.expectEmit(false, false, false, true);
-        emit MinimumWeightUpdated(0, MINIMUM_WEIGHT);
-
-        poaStakeRegistry.updateMinimumWeight(MINIMUM_WEIGHT);
-
-        assertEq(poaStakeRegistry.minimumWeight(), MINIMUM_WEIGHT);
-
-        vm.stopPrank();
-    }
-
-    function test_UpdateMinimumWeight_OnlyOwner() public {
-        vm.prank(nonOperator);
-        vm.expectRevert();
-        poaStakeRegistry.updateMinimumWeight(MINIMUM_WEIGHT);
     }
 
     // Test threshold weight updates

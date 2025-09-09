@@ -63,13 +63,6 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
     }
 
     /// @inheritdoc IPOAStakeRegistry
-    function updateMinimumWeight(
-        uint256 newMinimumWeight
-    ) external onlyOwner {
-        _updateMinimumWeight(newMinimumWeight);
-    }
-
-    /// @inheritdoc IPOAStakeRegistry
     function updateStakeThreshold(
         uint256 thresholdWeight
     ) external onlyOwner {
@@ -174,11 +167,6 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
     }
 
     /// @inheritdoc IPOAStakeRegistry
-    function minimumWeight() external view returns (uint256) {
-        return _minimumWeight;
-    }
-
-    /// @inheritdoc IPOAStakeRegistry
     function getOperatorWeight(
         address operator
     ) external view returns (uint256) {
@@ -211,18 +199,6 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         _quorumNumeratorHistory.push(quorumNumerator);
         _quorumDenominatorHistory.push(quorumDenominator);
         emit QuorumUpdated(quorumNumerator, quorumDenominator);
-    }
-
-    /**
-     * @notice Updates the weight an operator must have to join the operator set
-     * @param newMinimumWeight The new weight an operator must have to join the operator set
-     */
-    function _updateMinimumWeight(
-        uint256 newMinimumWeight
-    ) internal {
-        uint256 oldMinimumWeight = _minimumWeight;
-        _minimumWeight = newMinimumWeight;
-        emit MinimumWeightUpdated(oldMinimumWeight, newMinimumWeight);
     }
 
     /**

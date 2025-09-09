@@ -14,9 +14,6 @@ abstract contract POAStakeRegistryStorage is IPOAStakeRegistry {
     /// @notice The size of the current operator set
     uint256 internal _totalOperators;
 
-    /// @notice Specifies the weight required to become an operator
-    uint256 internal _minimumWeight;
-
     /// @notice Maps an operator to their signing key history using checkpoints
     mapping(address => CheckpointsUpgradeable.History) internal _operatorSigningKeyHistory;
 
