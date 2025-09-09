@@ -47,14 +47,12 @@ contract POAStakeRegistryTest is Test {
     uint256 public constant OPERATOR_WEIGHT_1 = 1000;
     uint256 public constant OPERATOR_WEIGHT_2 = 2000;
     uint256 public constant OPERATOR_WEIGHT_3 = 1500;
-    uint256 public constant MINIMUM_WEIGHT = 500;
 
     // Events to test
     event OperatorRegistered(address indexed operator);
     event OperatorDeregistered(address indexed operator);
     event OperatorWeightUpdated(address indexed operator, uint256 oldWeight, uint256 newWeight);
     event TotalWeightUpdated(uint256 oldTotalWeight, uint256 newTotalWeight);
-    event MinimumWeightUpdated(uint256 previous, uint256 current);
     event ThresholdWeightUpdated(uint256 thresholdWeight);
     event QuorumUpdated(uint256 quorumNumerator, uint256 quorumDenominator);
     event SigningKeyUpdate(
@@ -130,6 +128,13 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
     }
 
+    function test_RegisterOperator_InvalidWeight() public {
+        vm.startPrank(owner);
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidWeight.selector));
+        poaStakeRegistry.registerOperator(operator1, 0);
+        vm.stopPrank();
+    }
+
     function test_RegisterOperator_AlreadyRegistered() public {
         vm.startPrank(owner);
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
@@ -202,6 +207,14 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
     }
 
+    function test_UpdateOperatorWeight_InvalidWeight() public {
+        vm.startPrank(owner);
+        poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidWeight.selector));
+        poaStakeRegistry.updateOperatorWeight(operator1, 0);
+        vm.stopPrank();
+    }
+
     function test_UpdateOperatorWeight_OnlyOwner() public {
         vm.startPrank(owner);
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
@@ -220,26 +233,6 @@ contract POAStakeRegistryTest is Test {
         assertEq(poaStakeRegistry.getOperatorWeight(operator1), 0);
 
         vm.stopPrank();
-    }
-
-    // Test minimum weight updates
-    function test_UpdateMinimumWeight() public {
-        vm.startPrank(owner);
-
-        vm.expectEmit(false, false, false, true);
-        emit MinimumWeightUpdated(0, MINIMUM_WEIGHT);
-
-        poaStakeRegistry.updateMinimumWeight(MINIMUM_WEIGHT);
-
-        assertEq(poaStakeRegistry.minimumWeight(), MINIMUM_WEIGHT);
-
-        vm.stopPrank();
-    }
-
-    function test_UpdateMinimumWeight_OnlyOwner() public {
-        vm.prank(nonOperator);
-        vm.expectRevert();
-        poaStakeRegistry.updateMinimumWeight(MINIMUM_WEIGHT);
     }
 
     // Test threshold weight updates
@@ -649,34 +642,6 @@ contract POAStakeRegistryTest is Test {
 
         vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidSignature.selector));
         poaStakeRegistry.isValidSignature(digest, signatureData);
-    }
-
-    // Test edge cases and error conditions
-    function test_OperatorWeight_ZeroWeight() public {
-        vm.startPrank(owner);
-        poaStakeRegistry.registerOperator(operator1, 0);
-
-        assertTrue(poaStakeRegistry.operatorRegistered(operator1));
-        assertEq(poaStakeRegistry.getOperatorWeight(operator1), 0);
-        assertEq(poaStakeRegistry.getLastCheckpointTotalWeight(), 0);
-
-        vm.stopPrank();
-    }
-
-    function test_UpdateOperatorWeight_ZeroWeight() public {
-        vm.startPrank(owner);
-        poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
-
-        poaStakeRegistry.updateOperatorWeight(operator1, 0);
-
-        // The operator weight should be updated correctly
-        assertEq(poaStakeRegistry.getOperatorWeight(operator1), 0);
-
-        // Note: There seems to be an issue with total weight updates in the contract
-        // For now, we'll test that the operator weight is updated correctly
-        // The total weight issue should be investigated in the contract implementation
-
-        vm.stopPrank();
     }
 
     function test_MultipleOperators_WeightCalculation() public {

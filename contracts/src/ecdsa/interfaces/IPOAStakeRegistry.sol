@@ -34,6 +34,8 @@ interface IPOAStakeRegistryErrors {
     error InvalidQuorum();
     /// @notice Thrown when the quorum is insufficient.
     error InsufficientQuorum();
+    /// @notice Thrown when the weight is invalid.
+    error InvalidWeight();
 }
 
 /**
@@ -60,13 +62,6 @@ interface IPOAStakeRegistryEvents is IPOAStakeRegistryTypes {
      * @param operator The address of the deregistered operator.
      */
     event OperatorDeregistered(address indexed operator);
-
-    /**
-     * @notice Emitted when the weight to join the operator set updates.
-     * @param previous The previous minimum weight.
-     * @param current The new minimumWeight.
-     */
-    event MinimumWeightUpdated(uint256 previous, uint256 current);
 
     /**
      * @notice Emitted when the system updates an operator's weight.
@@ -156,14 +151,6 @@ interface IPOAStakeRegistry is
     function updateOperatorWeight(address operator, uint256 weight) external;
 
     /**
-     * @notice Updates the weight an operator must have to join the operator set.
-     * @param newMinimumWeight The new weight an operator must have to join the operator set.
-     */
-    function updateMinimumWeight(
-        uint256 newMinimumWeight
-    ) external;
-
-    /**
      * @notice Sets a new cumulative threshold weight for message validation.
      * @param thresholdWeight The updated threshold weight required to validate a message.
      */
@@ -236,12 +223,6 @@ interface IPOAStakeRegistry is
     function operatorRegistered(
         address operator
     ) external view returns (bool);
-
-    /**
-     * @notice Returns the minimum weight required for operator participation.
-     * @return The minimum weight threshold.
-     */
-    function minimumWeight() external view returns (uint256);
 
     /**
      * @notice Retrieves the operator's weight at a specific block number.
