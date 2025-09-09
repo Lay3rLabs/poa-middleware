@@ -7,7 +7,6 @@
     "no-console": "off",
     "import-path-check": "off",
     "no-empty-blocks": "off",
-    "gas-small-strings": "off",
-    "function-max-lines": "off"
+    "gas-indexed-events": "off"
   }
 }

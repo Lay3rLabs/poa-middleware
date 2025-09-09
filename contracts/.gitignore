@@ -12,3 +12,9 @@ docs/
 
 # Dotenv file
 .env
+
+coverage-report-bls/
+coverage-report-ecdsa/
+lcov.info
+
+deployments/
