@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {IERC1271Upgradeable} from
-    "openzeppelin-contracts-upgradeable/contracts/interfaces/IERC1271Upgradeable.sol";
+    "@openzeppelin/contracts-upgradeable/interfaces/IERC1271Upgradeable.sol";
 
 // TODO: many of these errors do not have test coverage.
 

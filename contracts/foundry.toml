@@ -3,13 +3,39 @@ src = "src"
 test = "test"
 script = "script"
 out = "out"
-libs = ["lib"]
+libs = ["lib", "../node_modules"]
 fs_permissions = [{ access = "read-write", path = "./" }, { access = "read", path = "/root/.nodes" }]
 solc = "0.8.27"
 via-ir = true
 optimizer = true
 optimizer_runs = 100
  # Higher number optimizes for frequent contract calls, lower number optimizes for deployment cost
+
+[profile.bls]
+src = "src/bls"
+test = "test/bls"
+script = "script/bls"
+out = "out/bls"
+libs = ["lib", "../node_modules"]
+cache_path = "cache/bls"
+fs_permissions = [{ access = "read-write", path = "./" }, { access = "read", path = "/root/.nodes" }]
+solc = "0.8.27"
+via-ir = true
+optimizer = true
+optimizer_runs = 100
+
+[profile.ecdsa]
+src = "src/ecdsa"
+test = "test/ecdsa"
+script = "script/ecdsa"
+out = "out/ecdsa"
+libs = ["lib", "../node_modules"]
+cache_path = "cache/ecdsa"
+fs_permissions = [{ access = "read-write", path = "./" }, { access = "read", path = "/root/.nodes" }]
+solc = "0.8.27"
+via-ir = true
+optimizer = true
+optimizer_runs = 100
 
 [fmt]
 line_length = 100

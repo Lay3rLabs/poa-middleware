@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {OwnableUpgradeable} from
-    "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {CheckpointsUpgradeable} from
-    "openzeppelin-contracts-upgradeable/contracts/utils/CheckpointsUpgradeable.sol";
+    "@openzeppelin/contracts-upgradeable/utils/CheckpointsUpgradeable.sol";
 import {SignatureCheckerUpgradeable} from
-    "openzeppelin-contracts-upgradeable/contracts/utils/cryptography/SignatureCheckerUpgradeable.sol";
+    "@openzeppelin/contracts-upgradeable/utils/cryptography/SignatureCheckerUpgradeable.sol";
 import {IERC1271Upgradeable} from
-    "openzeppelin-contracts-upgradeable/contracts/interfaces/IERC1271Upgradeable.sol";
+    "@openzeppelin/contracts-upgradeable/interfaces/IERC1271Upgradeable.sol";
 
 import {IPOAStakeRegistry, POAStakeRegistryStorage} from "./POAStakeRegistryStorage.sol";
 

@@ -5,6 +5,8 @@
   "author": "Lay3rLabs Team",
   "license": "MIT",
   "dependencies": {
+    "@openzeppelin/contracts": "4.9.0",
+    "@openzeppelin/contracts-upgradeable": "4.9.0",
     "solhint": "^6.0.1"
   },
   "scripts": {

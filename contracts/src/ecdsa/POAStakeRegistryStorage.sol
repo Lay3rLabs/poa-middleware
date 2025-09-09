@@ -2,7 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {CheckpointsUpgradeable} from
-    "openzeppelin-contracts-upgradeable/contracts/utils/CheckpointsUpgradeable.sol";
+    "@openzeppelin/contracts-upgradeable/utils/CheckpointsUpgradeable.sol";
 import {IPOAStakeRegistry} from "./interfaces/IPOAStakeRegistry.sol";
 
 /**
