@@ -77,6 +77,7 @@ contract POAStakeRegistryTest is Test {
         vm.startPrank(owner);
         poaStakeRegistry = new POAStakeRegistry();
         poaStakeRegistry.initialize(
+            owner,
             INITIAL_THRESHOLD_WEIGHT, INITIAL_QUORUM_NUMERATOR, INITIAL_QUORUM_DENOMINATOR
         );
         vm.stopPrank();

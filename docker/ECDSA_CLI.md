@@ -35,21 +35,31 @@ docker run --rm --network host -v ./.nodes:/root/.nodes \
 OPERATOR_KEY=$(cast wallet new --json | jq -r '.[0].private_key')
 OPERATOR_ADDRESS=$(cast wallet addr --private-key "$OPERATOR_KEY")
 echo "Operator address: $OPERATOR_ADDRESS"
-AVS_KEY=$(cast wallet new --json | jq -r '.[0].private_key')
-AVS_SIGNING_ADDRESS=$(cast wallet addr --private-key "$AVS_KEY")
-echo "AVS signing address: $AVS_SIGNING_ADDRESS"
+SIGNING_KEY=$(cast wallet new --json | jq -r '.[0].private_key')
+SIGNING_ADDRESS=$(cast wallet addr --private-key "$SIGNING_KEY")
+echo "signing address: $SIGNING_ADDRESS"
 
 docker run --rm --network host -v ./.nodes:/root/.nodes \
    --env-file .env \
-   -e OPERATOR_KEY=${OPERATOR_KEY} \
-   -e WAVS_SIGNING_KEY=${AVS_SIGNING_ADDRESS} \
-   poa-middleware register WAVS_DELEGATE_AMOUNT=1000000000000000
+   poa-middleware owner_operation registerOperator $OPERATOR_ADDRESS 10000
 
 docker run --rm --network host -v ./.nodes:/root/.nodes \
    --env-file .env \
-   poa-middleware update_quorum QUORUM_NUMERATOR=3 QUORUM_DENOMINATOR=5
+   poa-middleware owner_operation updateOperatorWeight $OPERATOR_ADDRESS 1000
 
 docker run --rm --network host -v ./.nodes:/root/.nodes \
    --env-file .env \
-   poa-middleware list_operators
+   poa-middleware update_signing_key $OPERATOR_KEY $SIGNING_ADDRESS
+
+docker run --rm --network host -v ./.nodes:/root/.nodes \
+   --env-file .env \
+   poa-middleware owner_operation deregisterOperator $OPERATOR_ADDRESS
+
+docker run --rm --network host -v ./.nodes:/root/.nodes \
+   --env-file .env \
+   poa-middleware owner_operation updateStakeThreshold 100
+
+docker run --rm --network host -v ./.nodes:/root/.nodes \
+   --env-file .env \
+   poa-middleware owner_operation updateQuorum 3 5
 ```
