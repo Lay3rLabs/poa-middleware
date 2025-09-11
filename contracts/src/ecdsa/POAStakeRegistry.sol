@@ -8,20 +8,17 @@ import {SignatureChecker} from
     "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {IERC1271} from
     "@openzeppelin/contracts/interfaces/IERC1271.sol";
-import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 import {IWavsServiceHandler} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
-
+import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 import {IPOAStakeRegistry, POAStakeRegistryStorage} from "./POAStakeRegistryStorage.sol";
 
 /// @title POA Stake Registry
 /// @dev THIS CONTRACT IS NOT AUDITED
 /// @author Lay3r Labs
 /// @notice Manages operator registration and quorum updates for an AVS using ECDSA signatures.
-contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStorage, IWavsServiceManager {
+contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStorage {
     using SignatureChecker for address;
     using Checkpoints for Checkpoints.Trace160;
-
-    string public serviceURI;
 
     /**
      * @notice Initializes the contract with the given parameters.
@@ -178,10 +175,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         return _operatorRegistered[operator];
     }
 
-    /// @inheritdoc IPOAStakeRegistry
+    /// @inheritdoc IWavsServiceManager
     function getOperatorWeight(
         address operator
-    ) external view override(IPOAStakeRegistry, IWavsServiceManager) returns (uint256) {
+    ) external view returns (uint256) {
         return _operatorWeightHistory[operator].latest();
     }
 
@@ -210,7 +207,7 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         }
         _quorumNumeratorHistory.push(uint96(block.number), uint160(quorumNumerator));
         _quorumDenominatorHistory.push(uint96(block.number), uint160(quorumDenominator));
-        emit QuorumUpdated(quorumNumerator, quorumDenominator);
+        emit QuorumThresholdUpdated(quorumNumerator, quorumDenominator);
     }
 
     /**
@@ -488,38 +485,45 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         }
     }
 
+    /// @inheritdoc IWavsServiceManager
     function setServiceURI(
-        string calldata _serviceURI
+        string calldata __serviceURI
     ) external onlyOwner {
-        serviceURI = _serviceURI;
+        _serviceURI = __serviceURI;
         emit ServiceURIUpdated(_serviceURI);
     }
 
+    /// @inheritdoc IWavsServiceManager
     function getServiceURI() external view returns (string memory) {
-        return serviceURI;
+        return _serviceURI;
     }
 
     // this is not used, but required for the IWAVSServiceManager to be Eigenlayer backwards compatible
+    /// @inheritdoc IWavsServiceManager
     function getAllocationManager() external pure returns (address) {
         return address(0);
     }
+    /// @inheritdoc IWavsServiceManager
     function getDelegationManager() external pure returns (address) {
         return address(0);
     }
+    /// @inheritdoc IWavsServiceManager
     function getStakeRegistry() external pure returns (address) {
         return address(0);
     }
 
+    /// @inheritdoc IWavsServiceManager
     function getLatestOperatorForSigningKey(
         address signingKeyAddress
     ) external view returns (address) {
         return address(uint160(_signingKeyOperatorHistory[signingKeyAddress].latest()));
     }
 
+    /// @inheritdoc IWavsServiceManager
     function validate(
         IWavsServiceHandler.Envelope calldata envelope,
         IWavsServiceHandler.SignatureData calldata signatureData
-    ) external view override {
+    ) external view {
         bytes32 digest = keccak256(abi.encode(envelope));
         _checkSignatures(digest, signatureData.signers, signatureData.signatures, signatureData.referenceBlock);
     }

@@ -55,7 +55,7 @@ contract POAStakeRegistryTest is Test {
     event OperatorWeightUpdated(address indexed operator, uint256 oldWeight, uint256 newWeight);
     event TotalWeightUpdated(uint256 oldTotalWeight, uint256 newTotalWeight);
     event ThresholdWeightUpdated(uint256 thresholdWeight);
-    event QuorumUpdated(uint256 quorumNumerator, uint256 quorumDenominator);
+    event QuorumThresholdUpdated(uint256 indexed numerator, uint256 indexed denominator);
     event SigningKeyUpdate(
         address indexed operator,
         uint256 indexed updateBlock,
@@ -267,7 +267,7 @@ contract POAStakeRegistryTest is Test {
         uint256 newDenominator = 4;
 
         vm.expectEmit(false, false, false, true);
-        emit QuorumUpdated(newNumerator, newDenominator);
+        emit QuorumThresholdUpdated(newNumerator, newDenominator);
 
         poaStakeRegistry.updateQuorum(newNumerator, newDenominator);
 

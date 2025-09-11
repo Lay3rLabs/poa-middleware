@@ -93,13 +93,6 @@ interface IPOAStakeRegistryEvents is IPOAStakeRegistryTypes {
         address indexed newSigningKey,
         address oldSigningKey
     );
-
-    /**
-     * @notice Emitted when the quorum is updated.
-     * @param quorumNumerator The new quorum numerator.
-     * @param quorumDenominator The new quorum denominator.
-     */
-    event QuorumUpdated(uint256 quorumNumerator, uint256 quorumDenominator);
 }
 
 /**
@@ -229,15 +222,6 @@ interface IPOAStakeRegistry is
     function getOperatorWeightAtBlock(
         address operator,
         uint32 blockNumber
-    ) external view returns (uint256);
-
-    /**
-     * @notice Retrieves the operator's weight.
-     * @param operator The address of the operator.
-     * @return The current weight of the operator.
-     */
-    function getOperatorWeight(
-        address operator
     ) external view returns (uint256);
 
     /**

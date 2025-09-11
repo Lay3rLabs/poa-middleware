@@ -4,15 +4,19 @@ pragma solidity ^0.8.27;
 import {Checkpoints} from
     "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {IPOAStakeRegistry} from "./interfaces/IPOAStakeRegistry.sol";
+import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 
 /**
  * @title Storage variables for the `POAStakeRegistry` contract.
  * @author Layr Labs, Inc.
  * @notice This storage contract is separate from the logic to simplify the upgrade process.
  */
-abstract contract POAStakeRegistryStorage is IPOAStakeRegistry {
+abstract contract POAStakeRegistryStorage is IPOAStakeRegistry, IWavsServiceManager {
     /// @notice The size of the current operator set
     uint256 internal _totalOperators;
+
+    /// @notice The service URI
+    string internal _serviceURI;
 
     /// @notice Maps an operator to their signing key history using checkpoints
     mapping(address => Checkpoints.Trace160) internal _operatorSigningKeyHistory;
