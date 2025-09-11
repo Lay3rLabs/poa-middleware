@@ -2,6 +2,7 @@
 pragma solidity ^0.8.27;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Checkpoints} from
     "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {SignatureChecker} from
@@ -524,7 +525,8 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         IWavsServiceHandler.Envelope calldata envelope,
         IWavsServiceHandler.SignatureData calldata signatureData
     ) external view {
-        bytes32 digest = keccak256(abi.encode(envelope));
+        bytes32 messageHash = keccak256(abi.encode(envelope));
+        bytes32 digest = MessageHashUtils.toEthSignedMessageHash(messageHash);
         _checkSignatures(digest, signatureData.signers, signatureData.signatures, signatureData.referenceBlock);
     }
 }
