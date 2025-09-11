@@ -30,6 +30,14 @@ jobs:
       - name: Pull submodules recursively
         run: git submodule update --init --recursive
 
+      - uses: actions/setup-node@v4
+        name: Install Node.js
+        with:
+          node-version: 21
+
+      - name: Install dependencies
+        run: npm install
+
       - name: Set IMAGE_TAG
         shell: bash
         run: |
@@ -73,6 +81,14 @@ jobs:
 
       - name: Pull submodules recursively
         run: git submodule update --init --recursive
+
+      - uses: actions/setup-node@v4
+        name: Install Node.js
+        with:
+          node-version: 21
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Set IMAGE_TAG
         shell: bash
