@@ -2,22 +2,24 @@
 pragma solidity ^0.8.27;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {CheckpointsUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/utils/CheckpointsUpgradeable.sol";
-import {SignatureCheckerUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/utils/cryptography/SignatureCheckerUpgradeable.sol";
-import {IERC1271Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/interfaces/IERC1271Upgradeable.sol";
-
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {Checkpoints} from
+    "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import {SignatureChecker} from
+    "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import {IERC1271} from
+    "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import {IWavsServiceHandler} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
+import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 import {IPOAStakeRegistry, POAStakeRegistryStorage} from "./POAStakeRegistryStorage.sol";
 
 /// @title POA Stake Registry
 /// @dev THIS CONTRACT IS NOT AUDITED
 /// @author Lay3r Labs
 /// @notice Manages operator registration and quorum updates for an AVS using ECDSA signatures.
-contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRegistryStorage {
-    using SignatureCheckerUpgradeable for address;
-    using CheckpointsUpgradeable for CheckpointsUpgradeable.History;
+contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStorage {
+    using SignatureChecker for address;
+    using Checkpoints for Checkpoints.Trace160;
 
     /**
      * @notice Initializes the contract with the given parameters.
@@ -34,8 +36,7 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
     ) external initializer {
         _updateStakeThreshold(thresholdWeight);
         _updateQuorum(quorumNumerator, quorumDenominator);
-        __Ownable_init();
-        transferOwnership(initialOwner);
+        __Ownable_init(initialOwner);
     }
 
     /// @inheritdoc IPOAStakeRegistry
@@ -96,7 +97,7 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         (address[] memory operators, bytes[] memory signatures, uint32 referenceBlock) =
             abi.decode(_signatureData, (address[], bytes[], uint32));
         _checkSignatures(digest, operators, signatures, referenceBlock);
-        return IERC1271Upgradeable.isValidSignature.selector;
+        return IERC1271.isValidSignature.selector;
     }
 
     /// @inheritdoc IPOAStakeRegistry
@@ -111,7 +112,7 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         address operator,
         uint256 blockNumber
     ) external view returns (address) {
-        return address(uint160(_operatorSigningKeyHistory[operator].getAtBlock(blockNumber)));
+        return address(uint160(_operatorSigningKeyHistory[operator].upperLookup(uint96(blockNumber))));
     }
 
     /// @inheritdoc IPOAStakeRegistry
@@ -141,21 +142,21 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         address operator,
         uint32 blockNumber
     ) external view returns (uint256) {
-        return _operatorWeightHistory[operator].getAtBlock(blockNumber);
+        return _operatorWeightHistory[operator].upperLookup(uint96(blockNumber));
     }
 
     /// @inheritdoc IPOAStakeRegistry
     function getLastCheckpointTotalWeightAtBlock(
         uint32 blockNumber
     ) external view returns (uint256) {
-        return _totalWeightHistory.getAtBlock(blockNumber);
+        return _totalWeightHistory.upperLookup(uint96(blockNumber));
     }
 
     /// @inheritdoc IPOAStakeRegistry
     function getLastCheckpointThresholdWeightAtBlock(
         uint32 blockNumber
     ) external view returns (uint256) {
-        return _thresholdWeightHistory.getAtBlock(blockNumber);
+        return _thresholdWeightHistory.upperLookup(uint96(blockNumber));
     }
 
     /// @inheritdoc IPOAStakeRegistry
@@ -163,8 +164,8 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         uint32 blockNumber
     ) external view returns (uint256, uint256) {
         return (
-            _quorumNumeratorHistory.getAtBlock(blockNumber),
-            _quorumDenominatorHistory.getAtBlock(blockNumber)
+            _quorumNumeratorHistory.upperLookup(uint96(blockNumber)),
+            _quorumDenominatorHistory.upperLookup(uint96(blockNumber))
         );
     }
 
@@ -175,7 +176,7 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         return _operatorRegistered[operator];
     }
 
-    /// @inheritdoc IPOAStakeRegistry
+    /// @inheritdoc IWavsServiceManager
     function getOperatorWeight(
         address operator
     ) external view returns (uint256) {
@@ -189,7 +190,7 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
     function _updateStakeThreshold(
         uint256 thresholdWeight
     ) internal {
-        _thresholdWeightHistory.push(thresholdWeight);
+        _thresholdWeightHistory.push(uint96(block.number), uint160(thresholdWeight));
         emit ThresholdWeightUpdated(thresholdWeight);
     }
 
@@ -205,9 +206,9 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         if (quorumNumerator > quorumDenominator) {
             revert InvalidQuorum();
         }
-        _quorumNumeratorHistory.push(quorumNumerator);
-        _quorumDenominatorHistory.push(quorumDenominator);
-        emit QuorumUpdated(quorumNumerator, quorumDenominator);
+        _quorumNumeratorHistory.push(uint96(block.number), uint160(quorumNumerator));
+        _quorumDenominatorHistory.push(uint96(block.number), uint160(quorumDenominator));
+        emit QuorumThresholdUpdated(quorumNumerator, quorumDenominator);
     }
 
     /**
@@ -253,7 +254,11 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         if (newSigningKey == oldSigningKey) {
             return;
         }
-        _operatorSigningKeyHistory[operator].push(uint160(newSigningKey));
+        _operatorSigningKeyHistory[operator].push(uint96(block.number), uint160(newSigningKey));
+        _signingKeyOperatorHistory[newSigningKey].push(uint96(block.number), uint160(operator));
+        if (oldSigningKey != address(0)) {
+            _signingKeyOperatorHistory[oldSigningKey].push(uint96(block.number), uint160(0));
+        }
         emit SigningKeyUpdate(operator, block.number, newSigningKey, oldSigningKey);
     }
 
@@ -272,14 +277,14 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
             if (delta == 0) {
                 return delta;
             }
-            _operatorWeightHistory[operator].push(0);
+            _operatorWeightHistory[operator].push(uint96(block.number), 0);
         } else {
             newWeight = weight;
             delta = int256(newWeight) - int256(oldWeight);
             if (delta == 0) {
                 return delta;
             }
-            _operatorWeightHistory[operator].push(newWeight);
+            _operatorWeightHistory[operator].push(uint96(block.number), uint160(newWeight));
         }
         emit OperatorWeightUpdated(operator, oldWeight, newWeight);
         return delta;
@@ -297,7 +302,7 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         oldTotalWeight = _totalWeightHistory.latest();
         int256 newWeight = int256(oldTotalWeight) + delta;
         newTotalWeight = uint256(newWeight);
-        _totalWeightHistory.push(newTotalWeight);
+        _totalWeightHistory.push(uint96(block.number), uint160(newTotalWeight));
         emit TotalWeightUpdated(oldTotalWeight, newTotalWeight);
     }
 
@@ -393,7 +398,7 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         if (!(referenceBlock < block.number)) {
             revert InvalidReferenceBlock();
         }
-        return address(uint160(_operatorSigningKeyHistory[operator].getAtBlock(referenceBlock)));
+        return address(uint160(_operatorSigningKeyHistory[operator].upperLookup(uint96(referenceBlock))));
     }
 
     /**
@@ -409,7 +414,7 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         if (!(referenceBlock < block.number)) {
             revert InvalidReferenceBlock();
         }
-        return _operatorWeightHistory[signer].getAtBlock(referenceBlock);
+        return _operatorWeightHistory[signer].upperLookup(uint96(referenceBlock));
     }
 
     /**
@@ -424,7 +429,7 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         if (!(referenceBlock < block.number)) {
             revert InvalidReferenceBlock();
         }
-        return _totalWeightHistory.getAtBlock(referenceBlock);
+        return _totalWeightHistory.upperLookup(uint96(referenceBlock));
     }
 
     /**
@@ -439,7 +444,7 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         if (!(referenceBlock < block.number)) {
             revert InvalidReferenceBlock();
         }
-        return _thresholdWeightHistory.getAtBlock(referenceBlock);
+        return _thresholdWeightHistory.upperLookup(uint96(referenceBlock));
     }
 
     /**
@@ -456,8 +461,8 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
             revert InvalidReferenceBlock();
         }
         return (
-            _quorumNumeratorHistory.getAtBlock(referenceBlock),
-            _quorumDenominatorHistory.getAtBlock(referenceBlock)
+            _quorumNumeratorHistory.upperLookup(uint96(referenceBlock)),
+            _quorumDenominatorHistory.upperLookup(uint96(referenceBlock))
         );
     }
 
@@ -477,7 +482,51 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         }
         (uint256 quorumNumerator, uint256 quorumDenominator) = _getQuorum(referenceBlock);
         if (signedWeight * quorumDenominator < quorumNumerator * totalWeight) {
-            revert InsufficientQuorum();
+            revert InsufficientQuorum(signedWeight, quorumNumerator, totalWeight);
         }
+    }
+
+    /// @inheritdoc IWavsServiceManager
+    function setServiceURI(
+        string calldata __serviceURI
+    ) external onlyOwner {
+        _serviceURI = __serviceURI;
+        emit ServiceURIUpdated(_serviceURI);
+    }
+
+    /// @inheritdoc IWavsServiceManager
+    function getServiceURI() external view returns (string memory) {
+        return _serviceURI;
+    }
+
+    // this is not used, but required for the IWAVSServiceManager to be Eigenlayer backwards compatible
+    /// @inheritdoc IWavsServiceManager
+    function getAllocationManager() external pure returns (address) {
+        return address(0);
+    }
+    /// @inheritdoc IWavsServiceManager
+    function getDelegationManager() external pure returns (address) {
+        return address(0);
+    }
+    /// @inheritdoc IWavsServiceManager
+    function getStakeRegistry() external pure returns (address) {
+        return address(0);
+    }
+
+    /// @inheritdoc IWavsServiceManager
+    function getLatestOperatorForSigningKey(
+        address signingKeyAddress
+    ) external view returns (address) {
+        return address(uint160(_signingKeyOperatorHistory[signingKeyAddress].latest()));
+    }
+
+    /// @inheritdoc IWavsServiceManager
+    function validate(
+        IWavsServiceHandler.Envelope calldata envelope,
+        IWavsServiceHandler.SignatureData calldata signatureData
+    ) external view {
+        bytes32 messageHash = keccak256(abi.encode(envelope));
+        bytes32 digest = MessageHashUtils.toEthSignedMessageHash(messageHash);
+        _checkSignatures(digest, signatureData.signers, signatureData.signatures, signatureData.referenceBlock);
     }
 }

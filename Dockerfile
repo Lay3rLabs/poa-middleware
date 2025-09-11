@@ -6,6 +6,7 @@ USER root
 COPY contracts /wavs/contracts
 COPY node_modules/@openzeppelin /wavs/node_modules/@openzeppelin
 COPY node_modules/forge-std /wavs/node_modules/forge-std
+COPY node_modules/@wavs /wavs/node_modules/@wavs
 RUN apt-get install make
 RUN cd /wavs/contracts && make build
 

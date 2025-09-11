@@ -28,7 +28,7 @@ library UpgradeableProxyLib {
      * @return proxyAdmin The proxy admin address.
      */
     function deployProxyAdmin() internal returns (address) {
-        return address(new ProxyAdmin());
+        return address(new ProxyAdmin(msg.sender));
     }
 
     /**
@@ -50,7 +50,7 @@ library UpgradeableProxyLib {
      */
     function upgrade(address proxy, address impl) internal {
         ProxyAdmin admin = getProxyAdmin(proxy);
-        admin.upgrade(ITransparentUpgradeableProxy(payable(proxy)), impl);
+        admin.upgradeAndCall(ITransparentUpgradeableProxy(payable(proxy)), impl, "");
     }
 
     /**

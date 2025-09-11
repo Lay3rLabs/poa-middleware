@@ -1,36 +1,43 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {CheckpointsUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/utils/CheckpointsUpgradeable.sol";
+import {Checkpoints} from
+    "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {IPOAStakeRegistry} from "./interfaces/IPOAStakeRegistry.sol";
+import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 
 /**
  * @title Storage variables for the `POAStakeRegistry` contract.
  * @author Layr Labs, Inc.
  * @notice This storage contract is separate from the logic to simplify the upgrade process.
  */
-abstract contract POAStakeRegistryStorage is IPOAStakeRegistry {
+abstract contract POAStakeRegistryStorage is IPOAStakeRegistry, IWavsServiceManager {
     /// @notice The size of the current operator set
     uint256 internal _totalOperators;
 
+    /// @notice The service URI
+    string internal _serviceURI;
+
     /// @notice Maps an operator to their signing key history using checkpoints
-    mapping(address => CheckpointsUpgradeable.History) internal _operatorSigningKeyHistory;
+    mapping(address => Checkpoints.Trace160) internal _operatorSigningKeyHistory;
+
+    // @notice Maps a signing key to their latest operator using checkpoints
+    mapping(address => Checkpoints.Trace160) internal _signingKeyOperatorHistory;
 
     /// @notice Tracks the total stake history over time using checkpoints
-    CheckpointsUpgradeable.History internal _totalWeightHistory;
+    Checkpoints.Trace160 internal _totalWeightHistory;
 
     /// @notice Tracks the threshold bps history using checkpoints
-    CheckpointsUpgradeable.History internal _thresholdWeightHistory;
+    Checkpoints.Trace160 internal _thresholdWeightHistory;
 
     /// @notice Tracks the quorum numerator history over time using checkpoints
-    CheckpointsUpgradeable.History internal _quorumNumeratorHistory;
+    Checkpoints.Trace160 internal _quorumNumeratorHistory;
 
     /// @notice Tracks the quorum denominator history over time using checkpoints
-    CheckpointsUpgradeable.History internal _quorumDenominatorHistory;
+    Checkpoints.Trace160 internal _quorumDenominatorHistory;
 
     /// @notice Maps operator addresses to their respective stake histories using checkpoints
-    mapping(address => CheckpointsUpgradeable.History) internal _operatorWeightHistory;
+    mapping(address => Checkpoints.Trace160) internal _operatorWeightHistory;
 
     /// @notice Maps an operator to their registration status
     mapping(address => bool) internal _operatorRegistered;

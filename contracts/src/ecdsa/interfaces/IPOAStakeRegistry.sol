@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {IERC1271Upgradeable} from
-    "@openzeppelin/contracts-upgradeable/interfaces/IERC1271Upgradeable.sol";
+import {IERC1271} from
+    "@openzeppelin/contracts/interfaces/IERC1271.sol";
 
 // TODO: many of these errors do not have test coverage.
 
@@ -16,8 +16,6 @@ interface IPOAStakeRegistryErrors {
     error LengthMismatch();
     /// @notice Thrown when encountering an invalid length for the signers or signatures array.
     error InvalidLength();
-    /// @notice Thrown when encountering an invalid signature.
-    error InvalidSignature();
     /// @notice Thrown when reference blocks must be for blocks that have already been confirmed.
     error InvalidReferenceBlock();
     /// @notice Thrown when operator weights were out of sync and the signed weight exceed the total.
@@ -32,8 +30,6 @@ interface IPOAStakeRegistryErrors {
     error OperatorNotRegistered();
     /// @notice Thrown when the quorum is invalid.
     error InvalidQuorum();
-    /// @notice Thrown when the quorum is insufficient.
-    error InsufficientQuorum();
     /// @notice Thrown when the weight is invalid.
     error InvalidWeight();
 }
@@ -97,13 +93,6 @@ interface IPOAStakeRegistryEvents is IPOAStakeRegistryTypes {
         address indexed newSigningKey,
         address oldSigningKey
     );
-
-    /**
-     * @notice Emitted when the quorum is updated.
-     * @param quorumNumerator The new quorum numerator.
-     * @param quorumDenominator The new quorum denominator.
-     */
-    event QuorumUpdated(uint256 quorumNumerator, uint256 quorumDenominator);
 }
 
 /**
@@ -114,7 +103,7 @@ interface IPOAStakeRegistryEvents is IPOAStakeRegistryTypes {
 interface IPOAStakeRegistry is
     IPOAStakeRegistryErrors,
     IPOAStakeRegistryEvents,
-    IERC1271Upgradeable
+    IERC1271
 {
     /* ACTIONS */
 
@@ -233,15 +222,6 @@ interface IPOAStakeRegistry is
     function getOperatorWeightAtBlock(
         address operator,
         uint32 blockNumber
-    ) external view returns (uint256);
-
-    /**
-     * @notice Retrieves the operator's weight.
-     * @param operator The address of the operator.
-     * @return The current weight of the operator.
-     */
-    function getOperatorWeight(
-        address operator
     ) external view returns (uint256);
 
     /**
