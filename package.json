@@ -5,8 +5,8 @@
   "author": "Lay3rLabs Team",
   "license": "MIT",
   "dependencies": {
-    "@openzeppelin/contracts": "4.9.0",
-    "@openzeppelin/contracts-upgradeable": "4.9.0",
+    "@openzeppelin/contracts": "5.2.0",
+    "@openzeppelin/contracts-upgradeable": "5.2.0",
     "forge-std": "github:foundry-rs/forge-std#v1.9.6",
     "solhint": "^6.0.1"
   },
