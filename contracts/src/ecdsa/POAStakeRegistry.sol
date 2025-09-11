@@ -9,6 +9,7 @@ import {SignatureChecker} from
 import {IERC1271} from
     "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
+import {IWavsServiceHandler} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
 
 import {IPOAStakeRegistry, POAStakeRegistryStorage} from "./POAStakeRegistryStorage.sol";
 
@@ -256,6 +257,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
             return;
         }
         _operatorSigningKeyHistory[operator].push(uint96(block.number), uint160(newSigningKey));
+        _signingKeyOperatorHistory[newSigningKey].push(uint96(block.number), uint160(operator));
+        if (oldSigningKey != address(0)) {
+            _signingKeyOperatorHistory[oldSigningKey].push(uint96(block.number), uint160(0));
+        }
         emit SigningKeyUpdate(operator, block.number, newSigningKey, oldSigningKey);
     }
 
@@ -495,13 +500,27 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     }
 
     // this is not used, but required for the IWAVSServiceManager to be Eigenlayer backwards compatible
-    function getAllocationManager() external view returns (address) {
+    function getAllocationManager() external pure returns (address) {
         return address(0);
     }
-    function getDelegationManager() external view returns (address) {
+    function getDelegationManager() external pure returns (address) {
         return address(0);
     }
-    function getStakeRegistry() external view returns (address) {
+    function getStakeRegistry() external pure returns (address) {
         return address(0);
+    }
+
+    function getLatestOperatorForSigningKey(
+        address signingKeyAddress
+    ) external view returns (address) {
+        return address(uint160(_signingKeyOperatorHistory[signingKeyAddress].latest()));
+    }
+
+    function validate(
+        IWavsServiceHandler.Envelope calldata envelope,
+        IWavsServiceHandler.SignatureData calldata signatureData
+    ) external view override {
+        bytes32 digest = keccak256(abi.encode(envelope));
+        _checkSignatures(digest, signatureData.signers, signatureData.signatures, signatureData.referenceBlock);
     }
 }

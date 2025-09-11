@@ -17,6 +17,9 @@ abstract contract POAStakeRegistryStorage is IPOAStakeRegistry {
     /// @notice Maps an operator to their signing key history using checkpoints
     mapping(address => Checkpoints.Trace160) internal _operatorSigningKeyHistory;
 
+    // @notice Maps a signing key to their latest operator using checkpoints
+    mapping(address => Checkpoints.Trace160) internal _signingKeyOperatorHistory;
+
     /// @notice Tracks the total stake history over time using checkpoints
     Checkpoints.Trace160 internal _totalWeightHistory;
 
