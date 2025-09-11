@@ -16,8 +16,6 @@ interface IPOAStakeRegistryErrors {
     error LengthMismatch();
     /// @notice Thrown when encountering an invalid length for the signers or signatures array.
     error InvalidLength();
-    /// @notice Thrown when encountering an invalid signature.
-    error InvalidSignature();
     /// @notice Thrown when reference blocks must be for blocks that have already been confirmed.
     error InvalidReferenceBlock();
     /// @notice Thrown when operator weights were out of sync and the signed weight exceed the total.
@@ -32,8 +30,6 @@ interface IPOAStakeRegistryErrors {
     error OperatorNotRegistered();
     /// @notice Thrown when the quorum is invalid.
     error InvalidQuorum();
-    /// @notice Thrown when the quorum is insufficient.
-    error InsufficientQuorum();
     /// @notice Thrown when the weight is invalid.
     error InvalidWeight();
 }

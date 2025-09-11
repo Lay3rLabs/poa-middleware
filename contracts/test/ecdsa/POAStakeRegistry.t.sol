@@ -5,6 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 
 import {POAStakeRegistry} from "src/ecdsa/POAStakeRegistry.sol";
 import {IPOAStakeRegistryErrors} from "src/ecdsa/interfaces/IPOAStakeRegistry.sol";
+import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 
 /**
  * @title POAStakeRegistryTest
@@ -497,7 +498,7 @@ contract POAStakeRegistryTest is Test {
 
         // This test would need actual ECDSA signatures to pass
         // For now, we're testing the structure and error handling
-        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(IWavsServiceManager.InvalidSignature.selector));
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
 
@@ -567,7 +568,7 @@ contract POAStakeRegistryTest is Test {
             _createSignatureData(operators, signatures, uint32(block.number - 1));
 
         // This will fail with InvalidSignature because we're using mock signatures
-        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(IWavsServiceManager.InvalidSignature.selector));
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
 
@@ -591,7 +592,7 @@ contract POAStakeRegistryTest is Test {
             _createSignatureData(operators, signatures, uint32(block.number - 1));
 
         // This will fail with InvalidSignature because we're using mock signatures
-        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(IWavsServiceManager.InvalidSignature.selector));
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
 
@@ -616,7 +617,7 @@ contract POAStakeRegistryTest is Test {
 
         // This would fail with InvalidSignedWeight if the signature validation passed
         // but the weight calculation was wrong
-        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(IWavsServiceManager.InvalidSignature.selector));
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
 
@@ -641,7 +642,7 @@ contract POAStakeRegistryTest is Test {
         bytes memory signatureData =
             _createSignatureData(operators, signatures, uint32(block.number - 1));
 
-        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(IWavsServiceManager.InvalidSignature.selector));
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
 

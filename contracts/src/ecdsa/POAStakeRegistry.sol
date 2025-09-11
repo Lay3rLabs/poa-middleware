@@ -8,6 +8,7 @@ import {SignatureChecker} from
     "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {IERC1271} from
     "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 
 import {IPOAStakeRegistry, POAStakeRegistryStorage} from "./POAStakeRegistryStorage.sol";
 
@@ -15,9 +16,11 @@ import {IPOAStakeRegistry, POAStakeRegistryStorage} from "./POAStakeRegistryStor
 /// @dev THIS CONTRACT IS NOT AUDITED
 /// @author Lay3r Labs
 /// @notice Manages operator registration and quorum updates for an AVS using ECDSA signatures.
-contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStorage {
+contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStorage, IWavsServiceManager {
     using SignatureChecker for address;
     using Checkpoints for Checkpoints.Trace160;
+
+    string public serviceURI;
 
     /**
      * @notice Initializes the contract with the given parameters.
@@ -177,7 +180,7 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     /// @inheritdoc IPOAStakeRegistry
     function getOperatorWeight(
         address operator
-    ) external view returns (uint256) {
+    ) external view override(IPOAStakeRegistry, IWavsServiceManager) returns (uint256) {
         return _operatorWeightHistory[operator].latest();
     }
 
@@ -476,7 +479,29 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         }
         (uint256 quorumNumerator, uint256 quorumDenominator) = _getQuorum(referenceBlock);
         if (signedWeight * quorumDenominator < quorumNumerator * totalWeight) {
-            revert InsufficientQuorum();
+            revert InsufficientQuorum(signedWeight, quorumNumerator, totalWeight);
         }
+    }
+
+    function setServiceURI(
+        string calldata _serviceURI
+    ) external onlyOwner {
+        serviceURI = _serviceURI;
+        emit ServiceURIUpdated(_serviceURI);
+    }
+
+    function getServiceURI() external view returns (string memory) {
+        return serviceURI;
+    }
+
+    // this is not used, but required for the IWAVSServiceManager to be Eigenlayer backwards compatible
+    function getAllocationManager() external view returns (address) {
+        return address(0);
+    }
+    function getDelegationManager() external view returns (address) {
+        return address(0);
+    }
+    function getStakeRegistry() external view returns (address) {
+        return address(0);
     }
 }
