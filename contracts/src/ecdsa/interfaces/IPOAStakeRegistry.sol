@@ -32,6 +32,8 @@ interface IPOAStakeRegistryErrors {
     error InvalidQuorum();
     /// @notice Thrown when the weight is invalid.
     error InvalidWeight();
+    /// @notice Thrown when the signer is not registered.
+    error SignerNotRegistered();
 }
 
 /**

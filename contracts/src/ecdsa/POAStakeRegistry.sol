@@ -94,9 +94,9 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         bytes32 digest,
         bytes memory _signatureData
     ) external view returns (bytes4) {
-        (address[] memory operators, bytes[] memory signatures, uint32 referenceBlock) =
+        (address[] memory signers, bytes[] memory signatures, uint32 referenceBlock) =
             abi.decode(_signatureData, (address[], bytes[], uint32));
-        _checkSignatures(digest, operators, signatures, referenceBlock);
+        _checkSignatures(digest, signers, signatures, referenceBlock);
         return IERC1271.isValidSignature.selector;
     }
 
@@ -309,32 +309,32 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     /**
      * @notice Common logic to verify a batch of ECDSA signatures against a hash, using either last stake weight or at a specific block.
      * @param digest The hash of the data the signers endorsed.
-     * @param operators A collection of addresses that endorsed the data hash.
+     * @param signers A collection of signing key addresses that endorsed the data hash.
      * @param signatures A collection of signatures matching the signers.
      * @param referenceBlock The block number for evaluating stake weight; use max uint32 for latest weight.
      */
     function _checkSignatures(
         bytes32 digest,
-        address[] memory operators,
+        address[] memory signers,
         bytes[] memory signatures,
         uint32 referenceBlock
     ) internal view {
-        uint256 signersLength = operators.length;
-        address currentOperator;
-        address lastOperator;
-        address signer;
+        uint256 signersLength = signers.length;
+        address currentSigner;
+        address lastSigner;
+        address operator;
         uint256 signedWeight;
 
         _validateSignaturesLength(signersLength, signatures.length);
         for (uint256 i; i < signersLength; ++i) {
-            currentOperator = operators[i];
-            signer = _getOperatorSigningKey(currentOperator, referenceBlock);
+            currentSigner = signers[i];
+            operator = _getOperatorForSigningKey(currentSigner, referenceBlock);
 
-            _validateSortedSigners(lastOperator, currentOperator);
-            _validateSignature(signer, digest, signatures[i]);
+            _validateSortedSigners(lastSigner, currentSigner);
+            _validateSignature(currentSigner, digest, signatures[i]);
 
-            lastOperator = currentOperator;
-            uint256 operatorWeight = _getOperatorWeight(currentOperator, referenceBlock);
+            lastSigner = currentSigner;
+            uint256 operatorWeight = _getOperatorWeight(operator, referenceBlock);
             signedWeight += operatorWeight;
         }
 
@@ -399,6 +399,26 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
             revert InvalidReferenceBlock();
         }
         return address(uint160(_operatorSigningKeyHistory[operator].upperLookup(uint96(referenceBlock))));
+    }
+
+    /**
+     * @notice Retrieves the operator address for a given signing key at a specific block.
+     * @param signingKey The signing key to look up the operator for.
+     * @param referenceBlock The block number to query the operator at.
+     * @return The operator address associated with the signing key.
+     */
+    function _getOperatorForSigningKey(
+        address signingKey,
+        uint32 referenceBlock
+    ) internal view returns (address) {
+        if (!(referenceBlock < block.number)) {
+            revert InvalidReferenceBlock();
+        }
+        address operator = address(uint160(_signingKeyOperatorHistory[signingKey].upperLookup(uint96(referenceBlock))));
+        if (operator == address(0)) {
+            revert SignerNotRegistered();
+        }
+        return operator;
     }
 
     /**
