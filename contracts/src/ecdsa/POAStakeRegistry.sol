@@ -21,11 +21,13 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
 
     /**
      * @notice Initializes the contract with the given parameters.
+     * @param initialOwner The initial owner of the contract.
      * @param thresholdWeight The threshold weight in basis points.
      * @param quorumNumerator The new quorum numerator.
      * @param quorumDenominator The new quorum denominator.
      */
     function initialize(
+        address initialOwner,
         uint256 thresholdWeight,
         uint256 quorumNumerator,
         uint256 quorumDenominator
@@ -33,6 +35,7 @@ contract POAStakeRegistry is IERC1271Upgradeable, OwnableUpgradeable, POAStakeRe
         _updateStakeThreshold(thresholdWeight);
         _updateQuorum(quorumNumerator, quorumDenominator);
         __Ownable_init();
+        transferOwnership(initialOwner);
     }
 
     /// @inheritdoc IPOAStakeRegistry

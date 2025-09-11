@@ -31,7 +31,7 @@ contract POAMiddlewareDeployer is Script {
         poaStakeRegistry = UpgradeableProxyLib.setUpEmptyProxy(proxyAdmin);
         address poaStakeRegistryImpl = address(new POAStakeRegistry());
         bytes memory poaStakeRegistryUpgradeCall =
-            abi.encodeCall(POAStakeRegistry.initialize, (100, 1, 1));
+            abi.encodeCall(POAStakeRegistry.initialize, (msg.sender, 100, 1, 1));
         UpgradeableProxyLib.upgradeAndCall(
             poaStakeRegistry, poaStakeRegistryImpl, poaStakeRegistryUpgradeCall
         );
