@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {IERC1271} from
-    "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 
 // TODO: many of these errors do not have test coverage.
 
@@ -102,11 +101,7 @@ interface IPOAStakeRegistryEvents is IPOAStakeRegistryTypes {
  * @author Lay3r Labs
  * @notice Interface containing all functions for the POAStakeRegistry contract.
  */
-interface IPOAStakeRegistry is
-    IPOAStakeRegistryErrors,
-    IPOAStakeRegistryEvents,
-    IERC1271
-{
+interface IPOAStakeRegistry is IPOAStakeRegistryErrors, IPOAStakeRegistryEvents, IERC1271 {
     /* ACTIONS */
 
     /**

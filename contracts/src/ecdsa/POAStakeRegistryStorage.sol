@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {Checkpoints} from
-    "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {IPOAStakeRegistry} from "./interfaces/IPOAStakeRegistry.sol";
 import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 
@@ -16,7 +15,7 @@ abstract contract POAStakeRegistryStorage is IPOAStakeRegistry, IWavsServiceMana
     uint256 internal _totalOperators;
 
     /// @notice The service URI
-    string internal _serviceURI;
+    string internal _serviceuri;
 
     /// @notice Maps an operator to their signing key history using checkpoints
     mapping(address => Checkpoints.Trace160) internal _operatorSigningKeyHistory;

@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
+import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
+import {IWavsServiceHandler} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
 
 import {POAStakeRegistry} from "src/ecdsa/POAStakeRegistry.sol";
 import {IPOAStakeRegistryErrors} from "src/ecdsa/interfaces/IPOAStakeRegistry.sol";
-import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 
 /**
  * @title POAStakeRegistryTest
@@ -22,10 +25,8 @@ import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsSe
  * - View functions and historical data access
  * - Error conditions and edge cases
  * - Access control and authorization
- *
- * Note: Some tests have been adapted to work around known issues in the contract
- * implementation, particularly around total weight calculations. These should be
- * investigated and fixed in the contract itself.
+ * - Service URI management
+ * - Integration with WAVS service interfaces
  */
 contract POAStakeRegistryTest is Test {
     /* solhint-disable func-name-mixedcase, use-natspec */
@@ -62,6 +63,7 @@ contract POAStakeRegistryTest is Test {
         address indexed newSigningKey,
         address oldSigningKey
     );
+    event ServiceURIUpdated(string serviceuri);
 
     function setUp() public {
         // Create test accounts
@@ -78,8 +80,7 @@ contract POAStakeRegistryTest is Test {
         vm.startPrank(owner);
         poaStakeRegistry = new POAStakeRegistry();
         poaStakeRegistry.initialize(
-            owner,
-            INITIAL_THRESHOLD_WEIGHT, INITIAL_QUORUM_NUMERATOR, INITIAL_QUORUM_DENOMINATOR
+            owner, INITIAL_THRESHOLD_WEIGHT, INITIAL_QUORUM_NUMERATOR, INITIAL_QUORUM_DENOMINATOR
         );
         vm.stopPrank();
     }
@@ -95,11 +96,11 @@ contract POAStakeRegistryTest is Test {
     }
 
     function _createSignatureData(
-        address[] memory operators,
+        address[] memory signers,
         bytes[] memory signatures,
         uint32 referenceBlock
     ) internal pure returns (bytes memory) {
-        return abi.encode(operators, signatures, referenceBlock);
+        return abi.encode(signers, signatures, referenceBlock);
     }
 
     function _advanceBlocks(
@@ -120,6 +121,9 @@ contract POAStakeRegistryTest is Test {
     // Test operator registration
     function test_RegisterOperator() public {
         vm.startPrank(owner);
+
+        vm.expectEmit(true, false, false, true);
+        emit OperatorRegistered(operator1);
 
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
 
@@ -160,6 +164,9 @@ contract POAStakeRegistryTest is Test {
         vm.startPrank(owner);
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
 
+        vm.expectEmit(true, false, false, true);
+        emit OperatorDeregistered(operator1);
+
         poaStakeRegistry.deregisterOperator(operator1);
 
         assertFalse(poaStakeRegistry.operatorRegistered(operator1));
@@ -197,14 +204,13 @@ contract POAStakeRegistryTest is Test {
 
         uint256 newWeight = OPERATOR_WEIGHT_1 + 500;
 
+        vm.expectEmit(true, false, false, true);
+        emit OperatorWeightUpdated(operator1, OPERATOR_WEIGHT_1, newWeight);
+
         poaStakeRegistry.updateOperatorWeight(operator1, newWeight);
 
-        // The operator weight should be updated correctly
         assertEq(poaStakeRegistry.getOperatorWeight(operator1), newWeight);
-
-        // Note: There seems to be an issue with total weight updates in the contract
-        // For now, we'll test that the operator weight is updated correctly
-        // The total weight issue should be investigated in the contract implementation
+        assertEq(poaStakeRegistry.getLastCheckpointTotalWeight(), newWeight);
 
         vm.stopPrank();
     }
@@ -352,6 +358,52 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
     }
 
+    // Test service URI management
+    function test_SetServiceURI() public {
+        vm.startPrank(owner);
+
+        string memory newuri = "https://example.com/service";
+        vm.expectEmit(false, false, false, true);
+        emit ServiceURIUpdated(newuri);
+
+        poaStakeRegistry.setServiceURI(newuri);
+
+        assertEq(poaStakeRegistry.getServiceURI(), newuri);
+
+        vm.stopPrank();
+    }
+
+    function test_SetServiceURI_OnlyOwner() public {
+        vm.prank(nonOperator);
+        vm.expectRevert();
+        poaStakeRegistry.setServiceURI("https://example.com/service");
+    }
+
+    // Test WAVS Service Manager interface functions
+    function test_GetAllocationManager() public view {
+        assertEq(poaStakeRegistry.getAllocationManager(), address(0));
+    }
+
+    function test_GetDelegationManager() public view {
+        assertEq(poaStakeRegistry.getDelegationManager(), address(0));
+    }
+
+    function test_GetStakeRegistry() public view {
+        assertEq(poaStakeRegistry.getStakeRegistry(), address(0));
+    }
+
+    function test_GetLatestOperatorForSigningKey() public {
+        vm.startPrank(owner);
+        poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
+        vm.stopPrank();
+
+        vm.startPrank(operator1);
+        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
+        vm.stopPrank();
+
+        assertEq(poaStakeRegistry.getLatestOperatorForSigningKey(signingKey1), operator1);
+    }
+
     // Test view functions
     function test_GetOperatorSigningKeyAtBlock() public {
         vm.startPrank(owner);
@@ -367,15 +419,11 @@ contract POAStakeRegistryTest is Test {
         // Test current state
         assertEq(poaStakeRegistry.getLatestOperatorSigningKey(operator1), signingKey2);
 
-        // Test that we can get historical data (simplified test)
-        // The exact block numbers may vary, so we'll just test that the function doesn't revert
-        try poaStakeRegistry.getOperatorSigningKeyAtBlock(operator1, uint32(block.number - 1))
-        returns (address key) {
-            // If it succeeds, the key should be one of our test keys
-            assertTrue(key == signingKey1 || key == signingKey2 || key == address(0));
-        } catch {
-            // If it fails, that's also acceptable for this test
-        }
+        // Test historical data
+        assertEq(
+            poaStakeRegistry.getOperatorSigningKeyAtBlock(operator1, uint32(block.number - 1)),
+            signingKey1
+        );
     }
 
     function test_GetOperatorWeightAtBlock() public {
@@ -388,15 +436,11 @@ contract POAStakeRegistryTest is Test {
         // Test current state
         assertEq(poaStakeRegistry.getOperatorWeight(operator1), OPERATOR_WEIGHT_2);
 
-        // Test that we can get historical data (simplified test)
-        try poaStakeRegistry.getOperatorWeightAtBlock(operator1, uint32(block.number - 1)) returns (
-            uint256 weight
-        ) {
-            // If it succeeds, the weight should be one of our test weights
-            assertTrue(weight == OPERATOR_WEIGHT_1 || weight == OPERATOR_WEIGHT_2 || weight == 0);
-        } catch {
-            // If it fails, that's also acceptable for this test
-        }
+        // Test historical data
+        assertEq(
+            poaStakeRegistry.getOperatorWeightAtBlock(operator1, uint32(block.number - 1)),
+            OPERATOR_WEIGHT_1
+        );
     }
 
     function test_GetTotalWeightAtBlock() public {
@@ -412,15 +456,11 @@ contract POAStakeRegistryTest is Test {
             poaStakeRegistry.getLastCheckpointTotalWeight(), OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2
         );
 
-        // Test that we can get historical data (simplified test)
-        try poaStakeRegistry.getLastCheckpointTotalWeightAtBlock(uint32(block.number - 1)) returns (
-            uint256 weight
-        ) {
-            // If it succeeds, the weight should be reasonable
-            assertTrue(!(weight < 0) && !(weight > OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2));
-        } catch {
-            // If it fails, that's also acceptable for this test
-        }
+        // Test historical data
+        assertEq(
+            poaStakeRegistry.getLastCheckpointTotalWeightAtBlock(uint32(block.number - 1)),
+            OPERATOR_WEIGHT_1
+        );
     }
 
     function test_GetThresholdWeightAtBlock() public {
@@ -433,14 +473,11 @@ contract POAStakeRegistryTest is Test {
         // Test current state
         assertEq(poaStakeRegistry.getLastCheckpointThresholdWeight(), 1500);
 
-        // Test that we can get historical data (simplified test)
-        try poaStakeRegistry.getLastCheckpointThresholdWeightAtBlock(uint32(block.number - 1))
-        returns (uint256 weight) {
-            // If it succeeds, the weight should be reasonable
-            assertTrue(weight == INITIAL_THRESHOLD_WEIGHT || weight == 1500);
-        } catch {
-            // If it fails, that's also acceptable for this test
-        }
+        // Test historical data
+        assertEq(
+            poaStakeRegistry.getLastCheckpointThresholdWeightAtBlock(uint32(block.number - 1)),
+            INITIAL_THRESHOLD_WEIGHT
+        );
     }
 
     function test_GetQuorumAtBlock() public {
@@ -455,21 +492,14 @@ contract POAStakeRegistryTest is Test {
         assertEq(num, 3);
         assertEq(den, 4);
 
-        // Test that we can get historical data (simplified test)
-        try poaStakeRegistry.getLastCheckpointQuorumAtBlock(uint32(block.number - 1)) returns (
-            uint256 histNum, uint256 histDen
-        ) {
-            // If it succeeds, the values should be reasonable
-            assertTrue(
-                (histNum == INITIAL_QUORUM_NUMERATOR && histDen == INITIAL_QUORUM_DENOMINATOR)
-                    || (histNum == 3 && histDen == 4)
-            );
-        } catch {
-            // If it fails, that's also acceptable for this test
-        }
+        // Test historical data
+        (uint256 histNum, uint256 histDen) =
+            poaStakeRegistry.getLastCheckpointQuorumAtBlock(uint32(block.number - 1));
+        assertEq(histNum, INITIAL_QUORUM_NUMERATOR);
+        assertEq(histDen, INITIAL_QUORUM_DENOMINATOR);
     }
 
-    // Test signature validation
+    // Test signature validation with real ECDSA signatures
     function test_IsValidSignature_ValidSignatures() public {
         vm.startPrank(owner);
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
@@ -477,42 +507,46 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
+        poaStakeRegistry.updateOperatorSigningKey(vm.addr(1));
         vm.stopPrank();
 
         vm.startPrank(operator2);
-        poaStakeRegistry.updateOperatorSigningKey(signingKey2);
+        poaStakeRegistry.updateOperatorSigningKey(vm.addr(2));
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
-        address[] memory operators = new address[](2);
-        operators[0] = operator1;
-        operators[1] = operator2;
+        address[] memory signers = new address[](2);
+        signers[0] = vm.addr(2);
+        signers[1] = vm.addr(1);
 
+        // Create valid signatures using vm.sign
         bytes[] memory signatures = new bytes[](2);
-        signatures[0] = _generateSignature(signingKey1, digest);
-        signatures[1] = _generateSignature(signingKey2, digest);
+        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(2, digest);
+        signatures[0] = abi.encodePacked(r1, s1, v1);
+        (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(1, digest);
+        signatures[1] = abi.encodePacked(r2, s2, v2);
 
+        _advanceBlocks(1);
         bytes memory signatureData =
-            _createSignatureData(operators, signatures, uint32(block.number - 1));
+            _createSignatureData(signers, signatures, uint32(block.number - 1));
 
-        // This test would need actual ECDSA signatures to pass
-        // For now, we're testing the structure and error handling
-        vm.expectRevert(abi.encodeWithSelector(IWavsServiceManager.InvalidSignature.selector));
-        poaStakeRegistry.isValidSignature(digest, signatureData);
+        // This should now pass with valid signatures
+        bytes4 result = poaStakeRegistry.isValidSignature(digest, signatureData);
+        assertEq(result, IERC1271.isValidSignature.selector);
     }
 
     function test_IsValidSignature_LengthMismatch() public {
         bytes32 digest = keccak256("test message");
-        address[] memory operators = new address[](2);
-        operators[0] = operator1;
-        operators[1] = operator2;
+        address[] memory signers = new address[](2);
+        signers[0] = vm.addr(1);
+        signers[1] = vm.addr(2);
 
         bytes[] memory signatures = new bytes[](1);
-        signatures[0] = _generateSignature(signingKey1, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+        signatures[0] = abi.encodePacked(r, s, v);
 
         bytes memory signatureData =
-            _createSignatureData(operators, signatures, uint32(block.number - 1));
+            _createSignatureData(signers, signatures, uint32(block.number - 1));
 
         vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.LengthMismatch.selector));
         poaStakeRegistry.isValidSignature(digest, signatureData);
@@ -520,11 +554,11 @@ contract POAStakeRegistryTest is Test {
 
     function test_IsValidSignature_InvalidLength() public {
         bytes32 digest = keccak256("test message");
-        address[] memory operators = new address[](0);
+        address[] memory signers = new address[](0);
         bytes[] memory signatures = new bytes[](0);
 
         bytes memory signatureData =
-            _createSignatureData(operators, signatures, uint32(block.number - 1));
+            _createSignatureData(signers, signatures, uint32(block.number - 1));
 
         vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidLength.selector));
         poaStakeRegistry.isValidSignature(digest, signatureData);
@@ -532,15 +566,15 @@ contract POAStakeRegistryTest is Test {
 
     function test_IsValidSignature_InvalidReferenceBlock() public {
         bytes32 digest = keccak256("test message");
-        address[] memory operators = new address[](1);
-        operators[0] = operator1;
+        address[] memory signers = new address[](1);
+        signers[0] = vm.addr(1);
 
         bytes[] memory signatures = new bytes[](1);
-        signatures[0] = _generateSignature(signingKey1, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+        signatures[0] = abi.encodePacked(r, s, v);
 
         // Use current block number (should be invalid)
-        bytes memory signatureData =
-            _createSignatureData(operators, signatures, uint32(block.number));
+        bytes memory signatureData = _createSignatureData(signers, signatures, uint32(block.number));
 
         vm.expectRevert(
             abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidReferenceBlock.selector)
@@ -555,20 +589,30 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
-        address[] memory operators = new address[](2);
-        // Operators not in ascending order
-        operators[0] = operator2;
-        operators[1] = operator1;
+        address[] memory signers = new address[](2);
+        signers[0] = vm.addr(1);
+        signers[1] = vm.addr(2);
 
         bytes[] memory signatures = new bytes[](2);
-        signatures[0] = _generateSignature(signingKey2, digest);
-        signatures[1] = _generateSignature(signingKey1, digest);
+        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(1, digest);
+        signatures[0] = abi.encodePacked(r1, s1, v1);
+        (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(2, digest);
+        signatures[1] = abi.encodePacked(r2, s2, v2);
 
+        // Update signing keys
+        vm.startPrank(operator1);
+        poaStakeRegistry.updateOperatorSigningKey(vm.addr(1));
+        vm.stopPrank();
+
+        vm.startPrank(operator2);
+        poaStakeRegistry.updateOperatorSigningKey(vm.addr(2));
+        vm.stopPrank();
+
+        _advanceBlocks(1);
         bytes memory signatureData =
-            _createSignatureData(operators, signatures, uint32(block.number - 1));
+            _createSignatureData(signers, signatures, uint32(block.number - 1));
 
-        // This will fail with InvalidSignature because we're using mock signatures
-        vm.expectRevert(abi.encodeWithSelector(IWavsServiceManager.InvalidSignature.selector));
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.NotSorted.selector));
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
 
@@ -578,72 +622,92 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
+        poaStakeRegistry.updateOperatorSigningKey(vm.addr(1));
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
-        address[] memory operators = new address[](1);
-        operators[0] = operator1;
+        address[] memory signers = new address[](1);
+        signers[0] = vm.addr(1);
 
         bytes[] memory signatures = new bytes[](1);
-        signatures[0] = _generateSignature(signingKey1, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+        signatures[0] = abi.encodePacked(r, s, v);
 
+        _advanceBlocks(1);
         bytes memory signatureData =
-            _createSignatureData(operators, signatures, uint32(block.number - 1));
+            _createSignatureData(signers, signatures, uint32(block.number - 1));
 
-        // This will fail with InvalidSignature because we're using mock signatures
-        vm.expectRevert(abi.encodeWithSelector(IWavsServiceManager.InvalidSignature.selector));
-        poaStakeRegistry.isValidSignature(digest, signatureData);
-    }
-
-    function test_IsValidSignature_InvalidSignedWeight() public {
-        vm.startPrank(owner);
-        poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
-        vm.stopPrank();
-
-        vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
-        vm.stopPrank();
-
-        bytes32 digest = keccak256("test message");
-        address[] memory operators = new address[](1);
-        operators[0] = operator1;
-
-        bytes[] memory signatures = new bytes[](1);
-        signatures[0] = _generateSignature(signingKey1, digest);
-
-        bytes memory signatureData =
-            _createSignatureData(operators, signatures, uint32(block.number - 1));
-
-        // This would fail with InvalidSignedWeight if the signature validation passed
-        // but the weight calculation was wrong
-        vm.expectRevert(abi.encodeWithSelector(IWavsServiceManager.InvalidSignature.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.InsufficientSignedStake.selector)
+        );
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
 
     function test_IsValidSignature_InsufficientQuorum() public {
         vm.startPrank(owner);
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
+        poaStakeRegistry.registerOperator(operator2, OPERATOR_WEIGHT_2);
         // Set a high quorum requirement
         poaStakeRegistry.updateQuorum(9, 10); // 90% quorum
         vm.stopPrank();
 
         vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
+        poaStakeRegistry.updateOperatorSigningKey(vm.addr(1));
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
-        address[] memory operators = new address[](1);
-        operators[0] = operator1;
+        address[] memory signers = new address[](1);
+        signers[0] = vm.addr(1);
 
         bytes[] memory signatures = new bytes[](1);
-        signatures[0] = _generateSignature(signingKey1, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+        signatures[0] = abi.encodePacked(r, s, v);
 
+        _advanceBlocks(1);
         bytes memory signatureData =
-            _createSignatureData(operators, signatures, uint32(block.number - 1));
+            _createSignatureData(signers, signatures, uint32(block.number - 1));
 
-        vm.expectRevert(abi.encodeWithSelector(IWavsServiceManager.InvalidSignature.selector));
+        vm.expectRevert(
+            abi.encodeWithSelector(IWavsServiceManager.InsufficientQuorum.selector, 1000, 9, 3000)
+        );
         poaStakeRegistry.isValidSignature(digest, signatureData);
+    }
+
+    // Test WAVS Service Handler integration
+    function test_Validate_ValidEnvelope() public {
+        vm.startPrank(owner);
+        poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
+        vm.stopPrank();
+
+        vm.startPrank(operator1);
+        poaStakeRegistry.updateOperatorSigningKey(vm.addr(1));
+        vm.stopPrank();
+
+        IWavsServiceHandler.Envelope memory envelope = IWavsServiceHandler.Envelope({
+            eventId: bytes20(uint160(1)),
+            ordering: bytes12(0),
+            payload: "test123"
+        });
+
+        bytes32 messageHash = keccak256(abi.encode(envelope));
+        bytes32 digest = MessageHashUtils.toEthSignedMessageHash(messageHash);
+
+        address[] memory signers = new address[](1);
+        signers[0] = vm.addr(1);
+
+        bytes[] memory signatures = new bytes[](1);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+        signatures[0] = abi.encodePacked(r, s, v);
+
+        _advanceBlocks(1);
+        IWavsServiceHandler.SignatureData memory signatureData = IWavsServiceHandler.SignatureData({
+            signers: signers,
+            signatures: signatures,
+            referenceBlock: uint32(block.number - 1)
+        });
+
+        // This should not revert
+        poaStakeRegistry.validate(envelope, signatureData);
     }
 
     function test_MultipleOperators_WeightCalculation() public {
@@ -675,39 +739,27 @@ contract POAStakeRegistryTest is Test {
         vm.startPrank(owner);
 
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
-        _advanceBlocks(5);
+        _advanceBlocks(1);
         poaStakeRegistry.registerOperator(operator2, OPERATOR_WEIGHT_2);
-        _advanceBlocks(5);
+        _advanceBlocks(1);
         poaStakeRegistry.updateOperatorWeight(operator1, OPERATOR_WEIGHT_1 + 500);
+        _advanceBlocks(1);
 
         vm.stopPrank();
 
         // Verify current state consistency
-        // Note: There seems to be an issue with total weight updates in the contract
-        // The total weight calculation is not working as expected
         uint256 actualTotalWeight = poaStakeRegistry.getLastCheckpointTotalWeight();
-        console.log(
-            "Expected total weight:",
-            OPERATOR_WEIGHT_1 + 500 + OPERATOR_WEIGHT_2,
-            "Actual:",
-            actualTotalWeight
-        );
+        assertEq(actualTotalWeight, OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2 + 500);
 
-        // For now, just test that the individual operator weights are correct
+        // Verify individual operator weights are correct
         assertEq(poaStakeRegistry.getOperatorWeight(operator1), OPERATOR_WEIGHT_1 + 500);
         assertEq(poaStakeRegistry.getOperatorWeight(operator2), OPERATOR_WEIGHT_2);
 
-        // Test that total weight is reasonable (not zero, not negative)
-        assertTrue(actualTotalWeight > 0);
-
-        // Test that historical data functions don't revert (simplified test)
-        try poaStakeRegistry.getLastCheckpointTotalWeightAtBlock(uint32(block.number - 1)) returns (
-            uint256 weight
-        ) {
-            assertTrue(!(weight < 0));
-        } catch {
-            // If it fails, that's also acceptable for this test
-        }
+        // Test historical data
+        assertEq(
+            poaStakeRegistry.getLastCheckpointTotalWeightAtBlock(uint32(block.number - 1)),
+            OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2 + 500
+        );
     }
 
     function test_ReturnSelector() public {
@@ -739,15 +791,24 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         // Verify final state
-        // Expected: 1000 + 100 + 2000 + 200 + 1500 = 4800
-        // But the test shows 4500, so let's check what's actually happening
-        uint256 actualWeight = poaStakeRegistry.getLastCheckpointTotalWeight();
-        // solhint-disable-next-line gas-small-strings
-        console.log("Expected weight: 4800, Actual weight:", actualWeight);
-        assertEq(actualWeight, 4500); // Using the actual value for now
+        uint256 expectedWeight =
+            OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2 + OPERATOR_WEIGHT_3 + 100 + 200;
+        assertEq(poaStakeRegistry.getLastCheckpointTotalWeight(), expectedWeight);
         assertEq(poaStakeRegistry.getLastCheckpointThresholdWeight(), 2000);
         (uint256 num, uint256 den) = poaStakeRegistry.getLastCheckpointQuorum();
         assertEq(num, 3);
         assertEq(den, 4);
+    }
+
+    // Test edge cases and error conditions
+    function test_UpdateOperatorWeight_ZeroWeight() public {
+        vm.startPrank(owner);
+        poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
+        vm.stopPrank();
+
+        vm.startPrank(owner);
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidWeight.selector));
+        poaStakeRegistry.updateOperatorWeight(operator1, 0);
+        vm.stopPrank();
     }
 }
