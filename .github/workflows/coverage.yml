@@ -28,16 +28,28 @@ jobs:
         run: |
           forge --version
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          npm install
+
       - name: Install lcov
         run: sudo apt-get -y install lcov
 
       - name: Run generate html report
         run: |
+          cd contracts
           make coverage-html-ecdsa
         id: coverage-html-ecdsa
 
       - name: Generate summary report
         run: |
+          cd contracts
           lcov --summary lcov.info > coverage-report-ecdsa/summary.md
           sed -i '1d' coverage-report-ecdsa/summary.md
           sed -i '/Message summary:/,$d' coverage-report-ecdsa/summary.md
@@ -50,11 +62,15 @@ jobs:
 
       - name: Add comment to PR
         if: github.event_name == 'pull_request' && env.GH_TOKEN != ''
-        run: gh pr comment $PR_NUMBER --body-file coverage-report-ecdsa/summary.md
+        run: |
+          cd contracts
+          gh pr comment $PR_NUMBER --body-file coverage-report-ecdsa/summary.md
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
 
       - name: Publish coverage in build summary
-        run: cat coverage-report-ecdsa/summary.md >> $GITHUB_STEP_SUMMARY
+        run: |
+          cd contracts
+          cat coverage-report-ecdsa/summary.md >> $GITHUB_STEP_SUMMARY
         shell: bash

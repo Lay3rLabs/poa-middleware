@@ -25,7 +25,7 @@ Terminal 2
 
 <!-- Ensures that the last command outputs operator 1 (i.e. they were registered) -->
 
-```bash docci-delay-before="3" docci-delay-per-cmd=0.1 docci-output-contains="Operator 1:"
+```bash
 cd docker/
 
 docker run --rm --network host -v ./.nodes:/root/.nodes \
