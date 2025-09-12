@@ -3,12 +3,9 @@ pragma solidity ^0.8.27;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {Checkpoints} from
-    "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
-import {SignatureChecker} from
-    "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import {IERC1271} from
-    "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
+import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {IWavsServiceHandler} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
 import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 import {IPOAStakeRegistry, POAStakeRegistryStorage} from "./POAStakeRegistryStorage.sol";
@@ -69,7 +66,8 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         if (weight == 0) {
             revert InvalidWeight();
         }
-        _updateOperatorWeight(operator, weight);
+        int256 delta = _updateOperatorWeight(operator, weight);
+        _updateTotalWeight(delta);
     }
 
     /// @inheritdoc IPOAStakeRegistry
@@ -112,7 +110,8 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         address operator,
         uint256 blockNumber
     ) external view returns (address) {
-        return address(uint160(_operatorSigningKeyHistory[operator].upperLookup(uint96(blockNumber))));
+        return
+            address(uint160(_operatorSigningKeyHistory[operator].upperLookup(uint96(blockNumber))));
     }
 
     /// @inheritdoc IPOAStakeRegistry
@@ -269,8 +268,8 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
      * @return delta The change in weight for the operator.
      */
     function _updateOperatorWeight(address operator, uint256 weight) internal returns (int256) {
-        int256 delta;
-        uint256 newWeight;
+        int256 delta = 0;
+        uint256 newWeight = 0;
         uint256 oldWeight = _operatorWeightHistory[operator].latest();
         if (!_operatorRegistered[operator]) {
             delta -= int256(oldWeight);
@@ -320,10 +319,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         uint32 referenceBlock
     ) internal view {
         uint256 signersLength = signers.length;
-        address currentSigner;
-        address lastSigner;
-        address operator;
-        uint256 signedWeight;
+        address currentSigner = address(0);
+        address lastSigner = address(0);
+        address operator = address(0);
+        uint256 signedWeight = 0;
 
         _validateSignaturesLength(signersLength, signatures.length);
         for (uint256 i; i < signersLength; ++i) {
@@ -386,22 +385,6 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     }
 
     /**
-     * @notice Retrieves the operator weight for a signer, either at the last checkpoint or a specified block.
-     * @param operator The operator to query their signing key history for
-     * @param referenceBlock The block number to query the operator's weight at, or the maximum uint32 value for the last checkpoint.
-     * @return The weight of the operator.
-     */
-    function _getOperatorSigningKey(
-        address operator,
-        uint32 referenceBlock
-    ) internal view returns (address) {
-        if (!(referenceBlock < block.number)) {
-            revert InvalidReferenceBlock();
-        }
-        return address(uint160(_operatorSigningKeyHistory[operator].upperLookup(uint96(referenceBlock))));
-    }
-
-    /**
      * @notice Retrieves the operator address for a given signing key at a specific block.
      * @param signingKey The signing key to look up the operator for.
      * @param referenceBlock The block number to query the operator at.
@@ -414,7 +397,9 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         if (!(referenceBlock < block.number)) {
             revert InvalidReferenceBlock();
         }
-        address operator = address(uint160(_signingKeyOperatorHistory[signingKey].upperLookup(uint96(referenceBlock))));
+        address operator = address(
+            uint160(_signingKeyOperatorHistory[signingKey].upperLookup(uint96(referenceBlock)))
+        );
         if (operator == address(0)) {
             revert SignerNotRegistered();
         }
@@ -508,15 +493,15 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
 
     /// @inheritdoc IWavsServiceManager
     function setServiceURI(
-        string calldata __serviceURI
+        string calldata __serviceuri
     ) external onlyOwner {
-        _serviceURI = __serviceURI;
-        emit ServiceURIUpdated(_serviceURI);
+        _serviceuri = __serviceuri;
+        emit ServiceURIUpdated(_serviceuri);
     }
 
     /// @inheritdoc IWavsServiceManager
     function getServiceURI() external view returns (string memory) {
-        return _serviceURI;
+        return _serviceuri;
     }
 
     // this is not used, but required for the IWAVSServiceManager to be Eigenlayer backwards compatible
@@ -524,10 +509,12 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     function getAllocationManager() external pure returns (address) {
         return address(0);
     }
+
     /// @inheritdoc IWavsServiceManager
     function getDelegationManager() external pure returns (address) {
         return address(0);
     }
+
     /// @inheritdoc IWavsServiceManager
     function getStakeRegistry() external pure returns (address) {
         return address(0);
@@ -547,6 +534,8 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     ) external view {
         bytes32 messageHash = keccak256(abi.encode(envelope));
         bytes32 digest = MessageHashUtils.toEthSignedMessageHash(messageHash);
-        _checkSignatures(digest, signatureData.signers, signatureData.signatures, signatureData.referenceBlock);
+        _checkSignatures(
+            digest, signatureData.signers, signatureData.signatures, signatureData.referenceBlock
+        );
     }
 }
