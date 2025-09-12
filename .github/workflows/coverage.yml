@@ -1,0 +1,76 @@
+name: test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  test:
+    strategy:
+      fail-fast: true
+
+    name: Foundry tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Show Forge version
+        run: |
+          forge --version
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Install lcov
+        run: sudo apt-get -y install lcov
+
+      - name: Run generate html report
+        run: |
+          cd contracts
+          make coverage-html-ecdsa
+        id: coverage-html-ecdsa
+
+      - name: Generate summary report
+        run: |
+          cd contracts
+          lcov --summary lcov.info > coverage-report-ecdsa/summary.md
+          sed -i '1d' coverage-report-ecdsa/summary.md
+          sed -i '/Message summary:/,$d' coverage-report-ecdsa/summary.md
+
+      - name: Upload coverage report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CoverageReport # Artifact name
+          path: coverage-report-ecdsa # Directory containing files to upload
+
+      - name: Add comment to PR
+        if: github.event_name == 'pull_request' && env.GH_TOKEN != ''
+        run: |
+          cd contracts
+          gh pr comment $PR_NUMBER --body-file coverage-report-ecdsa/summary.md
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+
+      - name: Publish coverage in build summary
+        run: |
+          cd contracts
+          cat coverage-report-ecdsa/summary.md >> $GITHUB_STEP_SUMMARY
+        shell: bash
