@@ -1,0 +1,52 @@
+name: lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  lint:
+    strategy:
+      fail-fast: true
+
+    name: Foundry project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Show Forge version
+        run: |
+          forge --version
+
+      - name: Setup node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          npm install
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run Forge fmt
+        run: |
+          cd contracts && make format-check
+        id: fmt
+
+      - name: "Add lint summary"
+        run: |
+          echo "## Lint result" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Passed" >> $GITHUB_STEP_SUMMARY
