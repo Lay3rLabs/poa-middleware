@@ -37,6 +37,8 @@ interface IPOAStakeRegistryErrors {
     error InvalidAddressZero();
     /// @notice Thrown when the signing key is already assigned to another operator.
     error SigningKeyAlreadyAssigned();
+    /// @notice Thrown when the threshold weight is invalid.
+    error InvalidThresholdWeight();
 }
 
 /**
@@ -178,15 +180,6 @@ interface IPOAStakeRegistry is IPOAStakeRegistryErrors, IPOAStakeRegistryEvents,
         address operator,
         uint256 blockNumber
     ) external view returns (address);
-
-    /**
-     * @notice Retrieves the last recorded weight for a given operator.
-     * @param operator The address of the operator.
-     * @return The latest weight of the operator.
-     */
-    function getLastCheckpointOperatorWeight(
-        address operator
-    ) external view returns (uint256);
 
     /**
      * @notice Retrieves the last recorded total weight across all operators.
