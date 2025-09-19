@@ -33,6 +33,10 @@ interface IPOAStakeRegistryErrors {
     error InvalidWeight();
     /// @notice Thrown when the signer is not registered.
     error SignerNotRegistered();
+    /// @notice Thrown when the address is zero.
+    error InvalidAddressZero();
+    /// @notice Thrown when the signing key is already assigned to another operator.
+    error SigningKeyAlreadyAssigned();
 }
 
 /**

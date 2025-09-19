@@ -249,6 +249,15 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
      * @param newSigningKey The new signing key to set for the operator
      */
     function _updateOperatorSigningKey(address operator, address newSigningKey) internal {
+        if (newSigningKey == address(0)) {
+            revert InvalidAddressZero();
+        }
+
+        address currentOwner = address(_signingKeyOperatorHistory[newSigningKey].latest());
+        if (currentOwner != address(0) && currentOwner != operator) {
+            revert SigningKeyAlreadyAssigned();
+        }
+
         address oldSigningKey = address(uint160(_operatorSigningKeyHistory[operator].latest()));
         if (newSigningKey == oldSigningKey) {
             return;
