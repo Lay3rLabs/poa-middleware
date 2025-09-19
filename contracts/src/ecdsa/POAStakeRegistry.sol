@@ -19,6 +19,7 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     using SignatureChecker for address;
     using Checkpoints for Checkpoints.Trace160;
 
+    /// @notice Constructor to disable initializers
     constructor() {
         _disableInitializers();
     }
@@ -57,7 +58,7 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     }
 
     /// @inheritdoc IPOAStakeRegistry
-    function updateOperatorSigningKey(
+    function updateOperatorSigningKey( // solhint-disable-line gas-calldata-parameters
         address newSigningKey,
         bytes memory signingKeySignature
     ) external {
@@ -254,6 +255,7 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
      * @notice Internal function to update an operator's signing key
      * @param operator The address of the operator to update the signing key for
      * @param newSigningKey The new signing key to set for the operator
+     * @param signingKeySignature The signature of the new signing key
      */
     function _updateOperatorSigningKey(
         address operator,

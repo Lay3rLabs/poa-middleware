@@ -34,9 +34,16 @@ echo "Operator address: $operator_address"
 
 ensure_balance "$operator_address"
 
-check_param "SIGNING_KEY_ADDRESS" "${SIGNING_KEY_ADDRESS:-$2}"
+check_param "SIGNING_KEY" "${SIGNING_KEY:-$1}"
+signing_address=$(cast wallet address "$SIGNING_KEY")
+echo "Signing address: $signing_address"
+
+encoded_operator_address=$(cast abi-encode "f(address)" "$operator_address")
+signing_message=$(cast keccak "$encoded_operator_address")
+signing_signature=$(cast wallet sign --no-hash --private-key "$SIGNING_KEY" "$signing_message")
+echo "Signing signature: $signing_signature"
 
 echo "Updating signing key"
-cast send "$POA_STAKER_REGISTRY_ADDRESS" "updateOperatorSigningKey(address)" "$SIGNING_KEY_ADDRESS" --private-key "$OPERATOR_KEY" --rpc-url "$RPC_URL"
+cast send "$POA_STAKER_REGISTRY_ADDRESS" "updateOperatorSigningKey(address,bytes)" "$signing_address" "$signing_signature" --private-key "$OPERATOR_KEY" --rpc-url "$RPC_URL"
 
 echo "Signing key updated successfully"

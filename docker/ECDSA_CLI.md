@@ -49,7 +49,7 @@ docker run --rm --network host -v ./.nodes:/root/.nodes \
 
 docker run --rm --network host -v ./.nodes:/root/.nodes \
    --env-file .env \
-   poa-middleware update_signing_key $OPERATOR_KEY $SIGNING_ADDRESS
+   poa-middleware update_signing_key $OPERATOR_KEY $SIGNING_KEY
 
 docker run --rm --network host -v ./.nodes:/root/.nodes \
    --env-file .env \
