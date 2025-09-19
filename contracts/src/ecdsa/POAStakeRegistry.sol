@@ -18,6 +18,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     using SignatureChecker for address;
     using Checkpoints for Checkpoints.Trace160;
 
+    constructor() {
+        _disableInitializers();
+    }
+
     /**
      * @notice Initializes the contract with the given parameters.
      * @param initialOwner The initial owner of the contract.
