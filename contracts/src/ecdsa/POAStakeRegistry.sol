@@ -407,6 +407,9 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         address signingKey,
         uint32 referenceBlock
     ) internal view returns (address) {
+        if (referenceBlock == type(uint32).max) {
+            return address(_signingKeyOperatorHistory[signingKey].latest());
+        }
         if (!(referenceBlock < block.number)) {
             revert InvalidReferenceBlock();
         }
@@ -429,6 +432,9 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         address signer,
         uint32 referenceBlock
     ) internal view returns (uint256) {
+        if (referenceBlock == type(uint32).max) {
+            return _operatorWeightHistory[signer].latest();
+        }
         if (!(referenceBlock < block.number)) {
             revert InvalidReferenceBlock();
         }
@@ -444,6 +450,9 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     function _getTotalWeight(
         uint32 referenceBlock
     ) internal view returns (uint256) {
+        if (referenceBlock == type(uint32).max) {
+            return _totalWeightHistory.latest();
+        }
         if (!(referenceBlock < block.number)) {
             revert InvalidReferenceBlock();
         }
@@ -459,6 +468,9 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     function _getThresholdStake(
         uint32 referenceBlock
     ) internal view returns (uint256) {
+        if (referenceBlock == type(uint32).max) {
+            return _thresholdWeightHistory.latest();
+        }
         if (!(referenceBlock < block.number)) {
             revert InvalidReferenceBlock();
         }
@@ -475,6 +487,9 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     function _getQuorum(
         uint32 referenceBlock
     ) internal view returns (uint256, uint256) {
+        if (referenceBlock == type(uint32).max) {
+            return (_quorumNumeratorHistory.latest(), _quorumDenominatorHistory.latest());
+        }
         if (!(referenceBlock < block.number)) {
             revert InvalidReferenceBlock();
         }
