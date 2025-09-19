@@ -57,12 +57,13 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
 
     /// @inheritdoc IPOAStakeRegistry
     function updateOperatorSigningKey(
-        address newSigningKey
+        address newSigningKey,
+        bytes memory signingKeySignature
     ) external {
         if (!_operatorRegistered[msg.sender]) {
             revert OperatorNotRegistered();
         }
-        _updateOperatorSigningKey(msg.sender, newSigningKey);
+        _updateOperatorSigningKey(msg.sender, newSigningKey, signingKeySignature);
     }
 
     /// @inheritdoc IPOAStakeRegistry
@@ -252,10 +253,17 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
      * @param operator The address of the operator to update the signing key for
      * @param newSigningKey The new signing key to set for the operator
      */
-    function _updateOperatorSigningKey(address operator, address newSigningKey) internal {
+    function _updateOperatorSigningKey(
+        address operator,
+        address newSigningKey,
+        bytes memory signingKeySignature
+    ) internal {
         if (newSigningKey == address(0)) {
             revert InvalidAddressZero();
         }
+
+        bytes32 messageHash = keccak256(abi.encode(operator));
+        _validateSignature(newSigningKey, messageHash, signingKeySignature);
 
         address currentOwner = address(_signingKeyOperatorHistory[newSigningKey].latest());
         if (currentOwner != address(0) && currentOwner != operator) {

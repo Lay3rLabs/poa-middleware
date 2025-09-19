@@ -126,10 +126,12 @@ interface IPOAStakeRegistry is IPOAStakeRegistryErrors, IPOAStakeRegistryEvents,
     /**
      * @notice Updates the signing key for an operator.
      * @param newSigningKey The new signing key to set for the operator.
+     * @param signingKeySignature The signature of the operator's new signing key.
      * @dev Only callable by the operator themselves.
      */
     function updateOperatorSigningKey(
-        address newSigningKey
+        address newSigningKey,
+        bytes memory signingKeySignature
     ) external;
 
     /**
