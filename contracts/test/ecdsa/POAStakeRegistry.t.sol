@@ -6,27 +6,16 @@ import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/Messa
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
 import {IWavsServiceHandler} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 import {POAStakeRegistry} from "src/ecdsa/POAStakeRegistry.sol";
 import {IPOAStakeRegistryErrors} from "src/ecdsa/interfaces/IPOAStakeRegistry.sol";
+import {UpgradeableProxyLib} from "script/ecdsa/utils/UpgradeableProxyLib.sol";
 
 /**
  * @title POAStakeRegistryTest
  * @author Lay3r Labs
  * @notice Comprehensive unit tests for the POAStakeRegistry contract
- *
- * This test suite covers:
- * - Contract initialization and configuration
- * - Operator registration and deregistration
- * - Weight management and updates
- * - Signing key updates
- * - Quorum and threshold management
- * - Signature validation and ECDSA verification
- * - View functions and historical data access
- * - Error conditions and edge cases
- * - Access control and authorization
- * - Service URI management
- * - Integration with WAVS service interfaces
  */
 contract POAStakeRegistryTest is Test {
     /* solhint-disable func-name-mixedcase, use-natspec */
@@ -38,6 +27,11 @@ contract POAStakeRegistryTest is Test {
     address public operator2;
     address public operator3;
     address public nonOperator;
+
+    // Signing key private keys and addresses
+    uint256 public signingKey1PrivateKey;
+    uint256 public signingKey2PrivateKey;
+    uint256 public signingKey3PrivateKey;
     address public signingKey1;
     address public signingKey2;
     address public signingKey3;
@@ -72,41 +66,47 @@ contract POAStakeRegistryTest is Test {
         operator2 = makeAddr("operator2");
         operator3 = makeAddr("operator3");
         nonOperator = makeAddr("nonOperator");
-        signingKey1 = makeAddr("signingKey1");
-        signingKey2 = makeAddr("signingKey2");
-        signingKey3 = makeAddr("signingKey3");
+
+        // Generate signing key private keys and derive addresses
+        // Use vm.createWallet to generate address/privateKey pairs dynamically
+        Vm.Wallet memory wallet1 = vm.createWallet("signingKey1");
+        Vm.Wallet memory wallet2 = vm.createWallet("signingKey2");
+        Vm.Wallet memory wallet3 = vm.createWallet("signingKey3");
+        signingKey1 = wallet1.addr;
+        signingKey1PrivateKey = wallet1.privateKey;
+        signingKey2 = wallet2.addr;
+        signingKey2PrivateKey = wallet2.privateKey;
+        signingKey3 = wallet3.addr;
+        signingKey3PrivateKey = wallet3.privateKey;
 
         // Deploy the contract
         vm.startPrank(owner);
-        poaStakeRegistry = new POAStakeRegistry();
-        poaStakeRegistry.initialize(
-            owner, INITIAL_THRESHOLD_WEIGHT, INITIAL_QUORUM_NUMERATOR, INITIAL_QUORUM_DENOMINATOR
+        address poaStakeRegistryProxy = UpgradeableProxyLib.setUpEmptyProxy(owner);
+        address poaStakeRegistryImpl = address(new POAStakeRegistry());
+
+        bytes memory poaStakeRegistryInvalidUpgradeCall = abi.encodeCall(
+            POAStakeRegistry.initialize,
+            (
+                address(0),
+                INITIAL_THRESHOLD_WEIGHT,
+                INITIAL_QUORUM_NUMERATOR,
+                INITIAL_QUORUM_DENOMINATOR
+            )
         );
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidAddressZero.selector));
+        UpgradeableProxyLib.upgradeAndCall(
+            poaStakeRegistryProxy, poaStakeRegistryImpl, poaStakeRegistryInvalidUpgradeCall
+        );
+
+        bytes memory poaStakeRegistryUpgradeCall = abi.encodeCall(
+            POAStakeRegistry.initialize,
+            (owner, INITIAL_THRESHOLD_WEIGHT, INITIAL_QUORUM_NUMERATOR, INITIAL_QUORUM_DENOMINATOR)
+        );
+        UpgradeableProxyLib.upgradeAndCall(
+            poaStakeRegistryProxy, poaStakeRegistryImpl, poaStakeRegistryUpgradeCall
+        );
+        poaStakeRegistry = POAStakeRegistry(poaStakeRegistryProxy);
         vm.stopPrank();
-    }
-
-    // Helper functions
-    function _generateSignature(
-        address signer,
-        bytes32 digest
-    ) internal pure returns (bytes memory) {
-        // This is a mock signature for testing purposes
-        // In real tests, you would use actual ECDSA signatures
-        return abi.encodePacked(signer, digest);
-    }
-
-    function _createSignatureData(
-        address[] memory signers,
-        bytes[] memory signatures,
-        uint32 referenceBlock
-    ) internal pure returns (bytes memory) {
-        return abi.encode(signers, signatures, referenceBlock);
-    }
-
-    function _advanceBlocks(
-        uint256 blocks
-    ) internal {
-        vm.roll(block.number + blocks);
     }
 
     // Test initialization
@@ -215,14 +215,6 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
     }
 
-    function test_UpdateOperatorWeight_InvalidWeight() public {
-        vm.startPrank(owner);
-        poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
-        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidWeight.selector));
-        poaStakeRegistry.updateOperatorWeight(operator1, 0);
-        vm.stopPrank();
-    }
-
     function test_UpdateOperatorWeight_OnlyOwner() public {
         vm.startPrank(owner);
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
@@ -315,7 +307,7 @@ contract POAStakeRegistryTest is Test {
         vm.expectEmit(true, true, true, true);
         emit SigningKeyUpdate(operator1, block.number, signingKey1, address(0));
 
-        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
 
         assertEq(poaStakeRegistry.getLatestOperatorSigningKey(operator1), signingKey1);
 
@@ -327,7 +319,8 @@ contract POAStakeRegistryTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(IPOAStakeRegistryErrors.OperatorNotRegistered.selector)
         );
-        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
+
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
     }
 
     function test_UpdateOperatorSigningKey_OnlyOperator() public {
@@ -339,7 +332,8 @@ contract POAStakeRegistryTest is Test {
         vm.expectRevert(
             abi.encodeWithSelector(IPOAStakeRegistryErrors.OperatorNotRegistered.selector)
         );
-        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
+
+        _updateOperatorSigningKey(nonOperator, signingKey1, signingKey1PrivateKey);
     }
 
     function test_UpdateOperatorSigningKey_SameKey() public {
@@ -348,10 +342,11 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
+
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
 
         // Should not emit event for same key
-        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
 
         assertEq(poaStakeRegistry.getLatestOperatorSigningKey(operator1), signingKey1);
 
@@ -398,7 +393,7 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
         vm.stopPrank();
 
         assertEq(poaStakeRegistry.getLatestOperatorForSigningKey(signingKey1), operator1);
@@ -411,9 +406,9 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(signingKey1);
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
         _advanceBlocks(10);
-        poaStakeRegistry.updateOperatorSigningKey(signingKey2);
+        _updateOperatorSigningKey(operator1, signingKey2, signingKey2PrivateKey);
         vm.stopPrank();
 
         // Test current state
@@ -507,23 +502,23 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(vm.addr(1));
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
         vm.stopPrank();
 
         vm.startPrank(operator2);
-        poaStakeRegistry.updateOperatorSigningKey(vm.addr(2));
+        _updateOperatorSigningKey(operator2, signingKey2, signingKey2PrivateKey);
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
         address[] memory signers = new address[](2);
-        signers[0] = vm.addr(2);
-        signers[1] = vm.addr(1);
+        signers[0] = signingKey2;
+        signers[1] = signingKey1;
 
         // Create valid signatures using vm.sign
         bytes[] memory signatures = new bytes[](2);
-        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(2, digest);
+        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(signingKey2PrivateKey, digest);
         signatures[0] = abi.encodePacked(r1, s1, v1);
-        (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(1, digest);
+        (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(signingKey1PrivateKey, digest);
         signatures[1] = abi.encodePacked(r2, s2, v2);
 
         _advanceBlocks(1);
@@ -538,11 +533,11 @@ contract POAStakeRegistryTest is Test {
     function test_IsValidSignature_LengthMismatch() public {
         bytes32 digest = keccak256("test message");
         address[] memory signers = new address[](2);
-        signers[0] = vm.addr(1);
-        signers[1] = vm.addr(2);
+        signers[0] = signingKey1;
+        signers[1] = signingKey2;
 
         bytes[] memory signatures = new bytes[](1);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signingKey1PrivateKey, digest);
         signatures[0] = abi.encodePacked(r, s, v);
 
         bytes memory signatureData =
@@ -567,10 +562,10 @@ contract POAStakeRegistryTest is Test {
     function test_IsValidSignature_InvalidReferenceBlock() public {
         bytes32 digest = keccak256("test message");
         address[] memory signers = new address[](1);
-        signers[0] = vm.addr(1);
+        signers[0] = signingKey1;
 
         bytes[] memory signatures = new bytes[](1);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signingKey1PrivateKey, digest);
         signatures[0] = abi.encodePacked(r, s, v);
 
         // Use current block number (should be invalid)
@@ -590,22 +585,22 @@ contract POAStakeRegistryTest is Test {
 
         bytes32 digest = keccak256("test message");
         address[] memory signers = new address[](2);
-        signers[0] = vm.addr(1);
-        signers[1] = vm.addr(2);
+        signers[0] = signingKey1;
+        signers[1] = signingKey2;
 
         bytes[] memory signatures = new bytes[](2);
-        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(1, digest);
+        (uint8 v1, bytes32 r1, bytes32 s1) = vm.sign(signingKey1PrivateKey, digest);
         signatures[0] = abi.encodePacked(r1, s1, v1);
-        (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(2, digest);
+        (uint8 v2, bytes32 r2, bytes32 s2) = vm.sign(signingKey2PrivateKey, digest);
         signatures[1] = abi.encodePacked(r2, s2, v2);
 
         // Update signing keys
         vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(vm.addr(1));
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
         vm.stopPrank();
 
         vm.startPrank(operator2);
-        poaStakeRegistry.updateOperatorSigningKey(vm.addr(2));
+        _updateOperatorSigningKey(operator2, signingKey2, signingKey2PrivateKey);
         vm.stopPrank();
 
         _advanceBlocks(1);
@@ -622,15 +617,15 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(vm.addr(1));
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
         address[] memory signers = new address[](1);
-        signers[0] = vm.addr(1);
+        signers[0] = signingKey1;
 
         bytes[] memory signatures = new bytes[](1);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signingKey1PrivateKey, digest);
         signatures[0] = abi.encodePacked(r, s, v);
 
         _advanceBlocks(1);
@@ -652,15 +647,15 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(vm.addr(1));
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
         address[] memory signers = new address[](1);
-        signers[0] = vm.addr(1);
+        signers[0] = signingKey1;
 
         bytes[] memory signatures = new bytes[](1);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signingKey1PrivateKey, digest);
         signatures[0] = abi.encodePacked(r, s, v);
 
         _advanceBlocks(1);
@@ -680,7 +675,7 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         vm.startPrank(operator1);
-        poaStakeRegistry.updateOperatorSigningKey(vm.addr(1));
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
         vm.stopPrank();
 
         IWavsServiceHandler.Envelope memory envelope = IWavsServiceHandler.Envelope({
@@ -693,10 +688,10 @@ contract POAStakeRegistryTest is Test {
         bytes32 digest = MessageHashUtils.toEthSignedMessageHash(messageHash);
 
         address[] memory signers = new address[](1);
-        signers[0] = vm.addr(1);
+        signers[0] = signingKey1;
 
         bytes[] memory signatures = new bytes[](1);
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(1, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signingKey1PrivateKey, digest);
         signatures[0] = abi.encodePacked(r, s, v);
 
         _advanceBlocks(1);
@@ -800,15 +795,86 @@ contract POAStakeRegistryTest is Test {
         assertEq(den, 4);
     }
 
-    // Test edge cases and error conditions
-    function test_UpdateOperatorWeight_ZeroWeight() public {
+    function test_InputParametersInvalid() public {
         vm.startPrank(owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidThresholdWeight.selector)
+        );
+        poaStakeRegistry.updateStakeThreshold(0);
+
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
+        poaStakeRegistry.registerOperator(operator2, OPERATOR_WEIGHT_2);
+
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidAddressZero.selector));
+        poaStakeRegistry.deregisterOperator(address(0));
+
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidAddressZero.selector));
+        poaStakeRegistry.registerOperator(address(0), OPERATOR_WEIGHT_1);
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidWeight.selector));
+        poaStakeRegistry.updateOperatorWeight(operator1, uint256(type(uint160).max) + 1);
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidAddressZero.selector));
+        poaStakeRegistry.updateOperatorWeight(address(0), OPERATOR_WEIGHT_1);
         vm.stopPrank();
 
-        vm.startPrank(owner);
-        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidWeight.selector));
-        poaStakeRegistry.updateOperatorWeight(operator1, 0);
+        vm.startPrank(operator1);
+        _updateOperatorSigningKey(operator1, signingKey1, signingKey1PrivateKey);
         vm.stopPrank();
+
+        vm.startPrank(operator2);
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidAddressZero.selector));
+        _updateOperatorSigningKey(operator2, address(0), signingKey2PrivateKey);
+        vm.expectRevert(abi.encodeWithSelector(IWavsServiceManager.InvalidSignature.selector));
+        _updateOperatorSigningKey(operator2, signingKey2, signingKey1PrivateKey);
+        vm.expectRevert(
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.SigningKeyAlreadyAssigned.selector)
+        );
+        _updateOperatorSigningKey(operator2, signingKey1, signingKey1PrivateKey);
+        vm.stopPrank();
+    }
+
+    // Helper functions
+    function _generateSignature(
+        address signer,
+        bytes32 digest
+    ) internal pure returns (bytes memory) {
+        // This is a mock signature for testing purposes
+        // In real tests, you would use actual ECDSA signatures
+        return abi.encodePacked(signer, digest);
+    }
+
+    /**
+     * @notice Update operator signing key with proper signature
+     * @param operator The operator address
+     * @param signingKey The signing key address
+     * @param signingKeyPrivateKey The private key of the signing key
+     */
+    function _updateOperatorSigningKey(
+        address operator,
+        address signingKey,
+        uint256 signingKeyPrivateKey
+    ) internal {
+        // Generate the message hash that needs to be signed
+        bytes32 messageHash = keccak256(abi.encode(operator));
+
+        // Generate the signature using the signing key's private key
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signingKeyPrivateKey, messageHash);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // Update the signing key
+        poaStakeRegistry.updateOperatorSigningKey(signingKey, signature);
+    }
+
+    function _createSignatureData(
+        address[] memory signers,
+        bytes[] memory signatures,
+        uint32 referenceBlock
+    ) internal pure returns (bytes memory) {
+        return abi.encode(signers, signatures, referenceBlock);
+    }
+
+    function _advanceBlocks(
+        uint256 blocks
+    ) internal {
+        vm.roll(block.number + blocks);
     }
 }
