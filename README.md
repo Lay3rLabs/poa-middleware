@@ -1,6 +1,6 @@
 # POA Middleware
 
-[**v1.0.0 Audited by Hashlock** (September 20th, 2025)](./audits/POA-Middleware-v1_0_0.pdf)
+[**v1.0.1 Audited by Hashlock** (September 20th, 2025)](./audits/POA-Middleware-v1_0_0.pdf)
 
 A Proof of Authority (POA) middleware system for managing operator registration, stake tracking, and signature validation using ECDSA signatures. This middleware provides a lightweight alternative to traditional EigenLayer-based AVS systems by implementing a simplified stake registry with quorum-based validation.
 
