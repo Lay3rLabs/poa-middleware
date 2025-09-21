@@ -12,7 +12,6 @@ import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsSe
 import {IPOAStakeRegistry, POAStakeRegistryStorage} from "./POAStakeRegistryStorage.sol";
 
 /// @title POA Stake Registry
-/// @dev THIS CONTRACT IS NOT AUDITED
 /// @author Lay3r Labs
 /// @notice Manages operator registration and quorum updates for an AVS using ECDSA signatures.
 contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStorage {
