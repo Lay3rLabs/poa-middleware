@@ -15,7 +15,7 @@ RUN cd /wavs/contracts && make build
 FROM debian:bookworm-slim
 
 # The rm reduces size about 20MB
-RUN apt update && apt install -yq jq curl && rm -rf /var/lib/apt/lists/*
+RUN apt update && apt install -yq make jq curl && rm -rf /var/lib/apt/lists/*
 
 # Version 1: Base foundry tools (148 MB)
 # COPY --from=build /usr/local/bin /usr/local/bin
@@ -39,6 +39,6 @@ WORKDIR /wavs
 COPY ./scripts /wavs/scripts
 RUN chmod +x $(find /wavs/scripts -name '*.sh')
 
-RUN FOUNDRY_PROFILE=ecdsa /usr/local/bin/forge build -C contracts
+RUN (cd contracts && make build-ecdsa)
 
 ENTRYPOINT ["/wavs/scripts/cli.sh"]
