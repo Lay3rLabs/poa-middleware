@@ -39,4 +39,6 @@ WORKDIR /wavs
 COPY ./scripts /wavs/scripts
 RUN chmod +x $(find /wavs/scripts -name '*.sh')
 
+RUN FOUNDRY_PROFILE=ecdsa /usr/local/bin/forge build -C contracts
+
 ENTRYPOINT ["/wavs/scripts/cli.sh"]
