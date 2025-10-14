@@ -94,7 +94,6 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         uint256 quorumNumerator,
         uint256 quorumDenominator
     ) external onlyOwner {
-        // Validate array lengths
         if (
             operators.length != weights.length ||
             operators.length != signingKeys.length ||
@@ -106,56 +105,11 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
             revert InvalidLength();
         }
         
-        int256 totalDelta = 0;
-        
         for (uint256 i = 0; i < operators.length; i++) {
-            address operator = operators[i];
-            uint256 weight = weights[i];
-            address signingKey = signingKeys[i];
-            bytes memory signingKeySignature = signingKeySignatures[i];
-            
-            // 1. Register operator (validation from _registerOperator)
-            if (weight == 0 || weight > type(uint160).max) {
-                revert InvalidWeight();
-            }
-            if (operator == address(0)) {
-                revert InvalidAddressZero();
-            }
-            if (_operatorRegistered[operator]) {
-                revert OperatorAlreadyRegistered();
-            }
-            
-            ++_totalOperators;
-            _operatorRegistered[operator] = true;
-            
-            // 2. Set operator weight
-            int256 delta = _updateOperatorWeightInternal(operator, weight);
-            totalDelta += delta;
-            
-            // 3. Set signing key (validation from _updateOperatorSigningKey)
-            if (signingKey == address(0)) {
-                revert InvalidAddressZero();
-            }
-            
-            bytes32 messageHash = keccak256(abi.encode(operator));
-            _validateSignature(signingKey, messageHash, signingKeySignature);
-            
-            address currentOwner = address(_signingKeyOperatorHistory[signingKey].latest());
-            if (currentOwner != address(0) && currentOwner != operator) {
-                revert SigningKeyAlreadyAssigned();
-            }
-            
-            _operatorSigningKeyHistory[operator].push(uint96(block.number), uint160(signingKey));
-            _signingKeyOperatorHistory[signingKey].push(uint96(block.number), uint160(operator));
-            
-            emit OperatorRegistered(operator);
-            emit SigningKeyUpdate(operator, block.number, signingKey, address(0));
+            _registerOperator(operators[i], weights[i]);
+            _updateOperatorSigningKey(operators[i], signingKeys[i], signingKeySignatures[i]);
         }
         
-        // Single total weight update for all operators
-        _updateTotalWeight(totalDelta);
-        
-        // Update quorum settings
         _updateQuorum(quorumNumerator, quorumDenominator);
     }
 
@@ -412,32 +366,6 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         emit TotalWeightUpdated(oldTotalWeight, newTotalWeight);
     }
 
-    /**
-     * @notice Internal weight update that doesn't trigger total weight recalculation.
-     * Used for bulk operations to accumulate deltas before single total weight update.
-     * @param operator The address of the operator to update the weight of.
-     * @param weight The weight to set for the operator.
-     * @return delta The change in weight for the operator.
-     */
-    function _updateOperatorWeightInternal(address operator, uint256 weight) internal returns (int256) {
-        if (weight > type(uint160).max) {
-            revert InvalidWeight();
-        }
-        if (operator == address(0)) {
-            revert InvalidAddressZero();
-        }
-        
-        uint256 oldWeight = _operatorWeightHistory[operator].latest();
-        uint256 newWeight = weight;
-        int256 delta = int256(newWeight) - int256(oldWeight);
-        
-        if (delta != 0) {
-            _operatorWeightHistory[operator].push(uint96(block.number), uint160(newWeight));
-            emit OperatorWeightUpdated(operator, oldWeight, newWeight);
-        }
-        
-        return delta;
-    }
 
     /**
      * @notice Common logic to verify a batch of ECDSA signatures against a hash, using either last stake weight or at a specific block.
