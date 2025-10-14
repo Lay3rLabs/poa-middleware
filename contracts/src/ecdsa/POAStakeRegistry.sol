@@ -85,6 +85,46 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         _updateQuorum(quorumNumerator, quorumDenominator);
     }
 
+    /// @inheritdoc IPOAStakeRegistry
+    function updateOperatorsForQuorum(address[] memory operators, uint256[] memory weights) external onlyOwner {
+        if (operators.length != weights.length) {
+            revert LengthMismatch();
+        }
+        if (operators.length == 0) {
+            revert InvalidLength();
+        }
+
+        int256 totalDelta = 0;
+
+        for (uint256 i = 0; i < operators.length; i++) {
+            address operator = operators[i];
+            uint256 weight = weights[i];
+
+            // Validation checks from _registerOperator
+            if (weight == 0 || weight > type(uint160).max) {
+                revert InvalidWeight();
+            }
+            if (operator == address(0)) {
+                revert InvalidAddressZero();
+            }
+            if (_operatorRegistered[operator]) {
+                revert OperatorAlreadyRegistered();
+            }
+
+            // Register operator (but without updating total weight yet)
+            ++_totalOperators;
+            _operatorRegistered[operator] = true;
+
+            int256 delta = _updateOperatorWeightInternal(operator, weight);
+            totalDelta += delta;
+
+            emit OperatorRegistered(operator);
+        }
+
+        // Single total weight update for all operators
+        _updateTotalWeight(totalDelta);
+    }
+
     /**
      * @notice Validates a signature against the signer's address and data hash.
      * @param digest The hash of the data that is signed.
@@ -336,6 +376,33 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         }
         _totalWeightHistory.push(uint96(block.number), uint160(newTotalWeight));
         emit TotalWeightUpdated(oldTotalWeight, newTotalWeight);
+    }
+
+    /**
+     * @notice Internal weight update that doesn't trigger total weight recalculation.
+     * Used for bulk operations to accumulate deltas before single total weight update.
+     * @param operator The address of the operator to update the weight of.
+     * @param weight The weight to set for the operator.
+     * @return delta The change in weight for the operator.
+     */
+    function _updateOperatorWeightInternal(address operator, uint256 weight) internal returns (int256) {
+        if (weight > type(uint160).max) {
+            revert InvalidWeight();
+        }
+        if (operator == address(0)) {
+            revert InvalidAddressZero();
+        }
+        
+        uint256 oldWeight = _operatorWeightHistory[operator].latest();
+        uint256 newWeight = weight;
+        int256 delta = int256(newWeight) - int256(oldWeight);
+        
+        if (delta != 0) {
+            _operatorWeightHistory[operator].push(uint96(block.number), uint160(newWeight));
+            emit OperatorWeightUpdated(operator, oldWeight, newWeight);
+        }
+        
+        return delta;
     }
 
     /**
