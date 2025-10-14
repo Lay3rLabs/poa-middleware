@@ -86,21 +86,33 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     }
 
     /// @inheritdoc IPOAStakeRegistry
-    function updateOperatorsForQuorum(address[] memory operators, uint256[] memory weights) external onlyOwner {
-        if (operators.length != weights.length) {
+    function registerOperatorsBulk(
+        address[] memory operators,
+        uint256[] memory weights,
+        address[] memory signingKeys,
+        bytes[] memory signingKeySignatures
+    ) external onlyOwner {
+        // Validate array lengths
+        if (
+            operators.length != weights.length ||
+            operators.length != signingKeys.length ||
+            operators.length != signingKeySignatures.length
+        ) {
             revert LengthMismatch();
         }
         if (operators.length == 0) {
             revert InvalidLength();
         }
-
+        
         int256 totalDelta = 0;
-
+        
         for (uint256 i = 0; i < operators.length; i++) {
             address operator = operators[i];
             uint256 weight = weights[i];
-
-            // Validation checks from _registerOperator
+            address signingKey = signingKeys[i];
+            bytes memory signingKeySignature = signingKeySignatures[i];
+            
+            // 1. Register operator (validation from _registerOperator)
             if (weight == 0 || weight > type(uint160).max) {
                 revert InvalidWeight();
             }
@@ -110,17 +122,34 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
             if (_operatorRegistered[operator]) {
                 revert OperatorAlreadyRegistered();
             }
-
-            // Register operator (but without updating total weight yet)
+            
             ++_totalOperators;
             _operatorRegistered[operator] = true;
-
+            
+            // 2. Set operator weight
             int256 delta = _updateOperatorWeightInternal(operator, weight);
             totalDelta += delta;
-
+            
+            // 3. Set signing key (validation from _updateOperatorSigningKey)
+            if (signingKey == address(0)) {
+                revert InvalidAddressZero();
+            }
+            
+            bytes32 messageHash = keccak256(abi.encode(operator));
+            _validateSignature(signingKey, messageHash, signingKeySignature);
+            
+            address currentOwner = address(_signingKeyOperatorHistory[signingKey].latest());
+            if (currentOwner != address(0) && currentOwner != operator) {
+                revert SigningKeyAlreadyAssigned();
+            }
+            
+            _operatorSigningKeyHistory[operator].push(uint96(block.number), uint160(signingKey));
+            _signingKeyOperatorHistory[signingKey].push(uint96(block.number), uint160(operator));
+            
             emit OperatorRegistered(operator);
+            emit SigningKeyUpdate(operator, block.number, signingKey, address(0));
         }
-
+        
         // Single total weight update for all operators
         _updateTotalWeight(totalDelta);
     }

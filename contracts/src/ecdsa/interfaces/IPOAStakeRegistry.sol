@@ -118,13 +118,21 @@ interface IPOAStakeRegistry is IPOAStakeRegistryErrors, IPOAStakeRegistryEvents,
     function registerOperator(address operator, uint256 weight) external;
 
     /**
-     * @notice Registers multiple operators with their weights in a single transaction.
+     * @notice Registers multiple operators with weights and signing keys in a single transaction.
+     * This replaces the need for multiple registerOperator + updateOperatorSigningKey + updateQuorum calls.
      * @param operators Array of operator addresses to register.
      * @param weights Array of weights corresponding to each operator.
-     * @dev Arrays must have the same length. Only callable by owner.
-     * @dev This replaces the need for multiple registerOperator + updateOperatorWeight + updateQuorum calls.
+     * @param signingKeys Array of signing keys for each operator.
+     * @param signingKeySignatures Array of signatures proving ownership of signing keys.
+     * @dev All arrays must have the same length. Only callable by owner.
+     * @dev This reduces 3N transactions to 1 transaction, matching EigenLayer's performance.
      */
-    function updateOperatorsForQuorum(address[] memory operators, uint256[] memory weights) external;
+    function registerOperatorsBulk(
+        address[] memory operators,
+        uint256[] memory weights,
+        address[] memory signingKeys,
+        bytes[] memory signingKeySignatures
+    ) external;
 
     /**
      * @notice Deregisters an existing operator.
