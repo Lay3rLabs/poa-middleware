@@ -90,7 +90,9 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         address[] memory operators,
         uint256[] memory weights,
         address[] memory signingKeys,
-        bytes[] memory signingKeySignatures
+        bytes[] memory signingKeySignatures,
+        uint256 quorumNumerator,
+        uint256 quorumDenominator
     ) external onlyOwner {
         // Validate array lengths
         if (
@@ -152,6 +154,9 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         
         // Single total weight update for all operators
         _updateTotalWeight(totalDelta);
+        
+        // Update quorum settings
+        _updateQuorum(quorumNumerator, quorumDenominator);
     }
 
     /**

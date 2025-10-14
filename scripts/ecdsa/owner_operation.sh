@@ -86,8 +86,10 @@ if [ "$FUNCTION_NAME" == "registerOperatorsBulk" ]; then
     check_param "WEIGHTS_ARRAY" "${WEIGHTS_ARRAY:-$3}"
     check_param "SIGNING_KEYS_ARRAY" "${SIGNING_KEYS_ARRAY:-$4}"
     check_param "SIGNATURES_ARRAY" "${SIGNATURES_ARRAY:-$5}"
-    echo "Bulk registering operators with signing keys"
-    cast send "$POA_STAKER_REGISTRY_ADDRESS" "registerOperatorsBulk(address[],uint256[],address[],bytes[])" "$OPERATORS_ARRAY" "$WEIGHTS_ARRAY" "$SIGNING_KEYS_ARRAY" "$SIGNATURES_ARRAY" --private-key "$FUNDED_KEY" --rpc-url "$RPC_URL"
+    check_param "QUORUM_NUMERATOR" "${QUORUM_NUMERATOR:-$6}"
+    check_param "QUORUM_DENOMINATOR" "${QUORUM_DENOMINATOR:-$7}"
+    echo "Bulk registering operators with signing keys and updating quorum"
+    cast send "$POA_STAKER_REGISTRY_ADDRESS" "registerOperatorsBulk(address[],uint256[],address[],bytes[],uint256,uint256)" "$OPERATORS_ARRAY" "$WEIGHTS_ARRAY" "$SIGNING_KEYS_ARRAY" "$SIGNATURES_ARRAY" "$QUORUM_NUMERATOR" "$QUORUM_DENOMINATOR" --private-key "$FUNDED_KEY" --rpc-url "$RPC_URL"
 
     echo "Operators bulk registered successfully (replaced 3N individual calls with 1 call)"
 fi
