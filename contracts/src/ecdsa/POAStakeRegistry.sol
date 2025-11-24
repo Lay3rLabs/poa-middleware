@@ -563,8 +563,8 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     }
 
     /// @inheritdoc IWavsServiceManager
-    function getStakeRegistry() external pure returns (address) {
-        return address(0);
+    function getStakeRegistry() external view returns (address) {
+        return address(this);
     }
 
     /// @inheritdoc IWavsServiceManager
