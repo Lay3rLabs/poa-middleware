@@ -56,7 +56,9 @@ interface IWavsServiceManager {
      * @param operator The address of the operator
      * @return The current weight of the operator
      */
-    function getOperatorWeight(address operator) external view returns (uint256);
+    function getOperatorWeight(
+        address operator
+    ) external view returns (uint256);
 
     /**
      * @notice Validates a signed envelope
@@ -78,14 +80,18 @@ interface IWavsServiceManager {
      * @notice Sets the service URI
      * @param _serviceURI The service URI to update.
      */
-    function setServiceURI(string calldata _serviceURI) external;
+    function setServiceURI(
+        string calldata _serviceURI
+    ) external;
 
     /**
      * @notice Returns the latest operator address associated with a signing key.
      * @param signingKeyAddress The address of the signing key.
      * @return The latest operator address associated with the signing key, or address(0) if none.
      */
-    function getLatestOperatorForSigningKey(address signingKeyAddress) external view returns (address);
+    function getLatestOperatorForSigningKey(
+        address signingKeyAddress
+    ) external view returns (address);
 
     /**
      * @notice Returns the allocation manager address.

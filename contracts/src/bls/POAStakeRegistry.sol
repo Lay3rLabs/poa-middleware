@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import {OwnableUpgradeable} from
-    "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {
+    OwnableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
 import {IWavsServiceHandler} from "./interfaces/IWavsServiceHandler.sol";
@@ -46,7 +47,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     }
 
     /// @inheritdoc IPOAStakeRegistry
-    function registerOperator(address operator, uint256 weight) external onlyOwner {
+    function registerOperator(
+        address operator,
+        uint256 weight
+    ) external onlyOwner {
         _registerOperator(operator, weight);
     }
 
@@ -69,7 +73,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     }
 
     /// @inheritdoc IPOAStakeRegistry
-    function updateOperatorWeight(address operator, uint256 weight) external onlyOwner {
+    function updateOperatorWeight(
+        address operator,
+        uint256 weight
+    ) external onlyOwner {
         int256 delta = _updateOperatorWeight(operator, weight);
         _updateTotalWeight(delta);
     }
@@ -253,7 +260,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         emit ThresholdWeightUpdated(thresholdWeight);
     }
 
-    function _updateQuorum(uint256 quorumNumerator, uint256 quorumDenominator) internal {
+    function _updateQuorum(
+        uint256 quorumNumerator,
+        uint256 quorumDenominator
+    ) internal {
         if (
             quorumNumerator > type(uint160).max || quorumDenominator > type(uint160).max
                 || quorumDenominator == 0 || quorumNumerator > quorumDenominator
@@ -281,7 +291,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         emit OperatorDeregistered(operator);
     }
 
-    function _registerOperator(address operator, uint256 weight) internal {
+    function _registerOperator(
+        address operator,
+        uint256 weight
+    ) internal {
         if (weight == 0 || weight > type(uint160).max) {
             revert InvalidWeight();
         }
@@ -298,7 +311,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         emit OperatorRegistered(operator);
     }
 
-    function _updateOperatorWeight(address operator, uint256 weight) internal returns (int256) {
+    function _updateOperatorWeight(
+        address operator,
+        uint256 weight
+    ) internal returns (int256) {
         if (weight > type(uint160).max) {
             revert InvalidWeight();
         }
@@ -364,9 +380,7 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         // Verify key ownership: operator signs keccak256(abi.encode(operator)) with BLS key
         bytes32 messageHash = keccak256(abi.encode(operator));
         bytes memory messageG2 = HashToCurve.hashToCurveG2(abi.encodePacked(messageHash));
-        bool ownershipValid = BLS12381.verifyAggregateSignature(
-            blsKey, messageG2, blsSigProof
-        );
+        bool ownershipValid = BLS12381.verifyAggregateSignature(blsKey, messageG2, blsSigProof);
         if (!ownershipValid) {
             revert InvalidBLSKeyOwnershipProof();
         }
@@ -395,9 +409,7 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         _blsKeyStore[newKeyHash] = blsKey;
 
         // Update forward mapping (operator -> key history)
-        history.push(
-            BLSKeyCheckpoint({blockNumber: uint96(block.number), keyHash: newKeyHash})
-        );
+        history.push(BLSKeyCheckpoint({blockNumber: uint96(block.number), keyHash: newKeyHash}));
 
         // Update reverse mapping (key -> operator)
         _signingKeyOperatorHistory[newKeyHash].push(uint96(block.number), uint160(operator));
@@ -554,7 +566,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
         );
     }
 
-    function _validateThresholdStake(uint256 signedWeight, uint32 referenceBlock) internal view {
+    function _validateThresholdStake(
+        uint256 signedWeight,
+        uint32 referenceBlock
+    ) internal view {
         uint256 totalWeight = _getTotalWeight(referenceBlock);
         if (signedWeight > totalWeight) {
             revert InvalidSignedWeight();

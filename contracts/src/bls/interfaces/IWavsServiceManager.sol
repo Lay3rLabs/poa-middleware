@@ -29,11 +29,7 @@ interface IWavsServiceManager {
      * @param thresholdWeight The threshold weight
      * @param totalWeight The total weight
      */
-    error InsufficientQuorum(
-        uint256 signerWeight,
-        uint256 thresholdWeight,
-        uint256 totalWeight
-    );
+    error InsufficientQuorum(uint256 signerWeight, uint256 thresholdWeight, uint256 totalWeight);
     /// @notice The error for the invalid quorum parameters.
     error InvalidQuorumParameters();
 
@@ -50,10 +46,7 @@ interface IWavsServiceManager {
      * @param numerator The numerator of the quorum threshold
      * @param denominator The denominator of the quorum threshold
      */
-    event QuorumThresholdUpdated(
-        uint256 indexed numerator,
-        uint256 indexed denominator
-    );
+    event QuorumThresholdUpdated(uint256 indexed numerator, uint256 indexed denominator);
 
     // ------------------------------------------------------------------------
     // Stake Registry View Functions
@@ -87,7 +80,9 @@ interface IWavsServiceManager {
      * @notice Sets the service URI
      * @param _serviceURI The service URI to update.
      */
-    function setServiceURI(string calldata _serviceURI) external;
+    function setServiceURI(
+        string calldata _serviceURI
+    ) external;
 
     /**
      * @notice Returns the latest operator address associated with a BLS signing key hash.

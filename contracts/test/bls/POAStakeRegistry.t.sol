@@ -49,17 +49,10 @@ contract POAStakeRegistryTest is Test {
     // Events to test
     event OperatorRegistered(address indexed operator);
     event OperatorDeregistered(address indexed operator);
-    event OperatorWeightUpdated(
-        address indexed operator,
-        uint256 oldWeight,
-        uint256 newWeight
-    );
+    event OperatorWeightUpdated(address indexed operator, uint256 oldWeight, uint256 newWeight);
     event TotalWeightUpdated(uint256 oldTotalWeight, uint256 newTotalWeight);
     event ThresholdWeightUpdated(uint256 thresholdWeight);
-    event QuorumThresholdUpdated(
-        uint256 indexed numerator,
-        uint256 indexed denominator
-    );
+    event QuorumThresholdUpdated(uint256 indexed numerator, uint256 indexed denominator);
     event SigningKeyUpdate(
         address indexed operator,
         uint256 indexed updateBlock,
@@ -95,30 +88,17 @@ contract POAStakeRegistryTest is Test {
                 INITIAL_QUORUM_DENOMINATOR
             )
         );
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidAddressZero.selector
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidAddressZero.selector));
         UpgradeableProxyLib.upgradeAndCall(
-            poaStakeRegistryProxy,
-            poaStakeRegistryImpl,
-            poaStakeRegistryInvalidUpgradeCall
+            poaStakeRegistryProxy, poaStakeRegistryImpl, poaStakeRegistryInvalidUpgradeCall
         );
 
         bytes memory poaStakeRegistryUpgradeCall = abi.encodeCall(
             POAStakeRegistry.initialize,
-            (
-                owner,
-                INITIAL_THRESHOLD_WEIGHT,
-                INITIAL_QUORUM_NUMERATOR,
-                INITIAL_QUORUM_DENOMINATOR
-            )
+            (owner, INITIAL_THRESHOLD_WEIGHT, INITIAL_QUORUM_NUMERATOR, INITIAL_QUORUM_DENOMINATOR)
         );
         UpgradeableProxyLib.upgradeAndCall(
-            poaStakeRegistryProxy,
-            poaStakeRegistryImpl,
-            poaStakeRegistryUpgradeCall
+            poaStakeRegistryProxy, poaStakeRegistryImpl, poaStakeRegistryUpgradeCall
         );
         poaStakeRegistry = POAStakeRegistry(poaStakeRegistryProxy);
         vm.stopPrank();
@@ -129,12 +109,8 @@ contract POAStakeRegistryTest is Test {
     // ══════════════════════════════════════════════════════════════════════════
 
     function test_Initialization() public view {
-        assertEq(
-            poaStakeRegistry.getLastCheckpointThresholdWeight(),
-            INITIAL_THRESHOLD_WEIGHT
-        );
-        (uint256 numerator, uint256 denominator) = poaStakeRegistry
-            .getLastCheckpointQuorum();
+        assertEq(poaStakeRegistry.getLastCheckpointThresholdWeight(), INITIAL_THRESHOLD_WEIGHT);
+        (uint256 numerator, uint256 denominator) = poaStakeRegistry.getLastCheckpointQuorum();
         assertEq(numerator, INITIAL_QUORUM_NUMERATOR);
         assertEq(denominator, INITIAL_QUORUM_DENOMINATOR);
         assertEq(poaStakeRegistry.owner(), owner);
@@ -153,25 +129,15 @@ contract POAStakeRegistryTest is Test {
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
 
         assertTrue(poaStakeRegistry.operatorRegistered(operator1));
-        assertEq(
-            poaStakeRegistry.getOperatorWeight(operator1),
-            OPERATOR_WEIGHT_1
-        );
-        assertEq(
-            poaStakeRegistry.getLastCheckpointTotalWeight(),
-            OPERATOR_WEIGHT_1
-        );
+        assertEq(poaStakeRegistry.getOperatorWeight(operator1), OPERATOR_WEIGHT_1);
+        assertEq(poaStakeRegistry.getLastCheckpointTotalWeight(), OPERATOR_WEIGHT_1);
 
         vm.stopPrank();
     }
 
     function test_RegisterOperator_InvalidWeight() public {
         vm.startPrank(owner);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidWeight.selector
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidWeight.selector));
         poaStakeRegistry.registerOperator(operator1, 0);
         vm.stopPrank();
     }
@@ -181,9 +147,7 @@ contract POAStakeRegistryTest is Test {
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.OperatorAlreadyRegistered.selector
-            )
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.OperatorAlreadyRegistered.selector)
         );
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_2);
 
@@ -220,9 +184,7 @@ contract POAStakeRegistryTest is Test {
         vm.startPrank(owner);
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.OperatorNotRegistered.selector
-            )
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.OperatorNotRegistered.selector)
         );
         poaStakeRegistry.deregisterOperator(operator1);
 
@@ -291,10 +253,7 @@ contract POAStakeRegistryTest is Test {
 
         poaStakeRegistry.updateStakeThreshold(newThreshold);
 
-        assertEq(
-            poaStakeRegistry.getLastCheckpointThresholdWeight(),
-            newThreshold
-        );
+        assertEq(poaStakeRegistry.getLastCheckpointThresholdWeight(), newThreshold);
 
         vm.stopPrank();
     }
@@ -320,8 +279,7 @@ contract POAStakeRegistryTest is Test {
 
         poaStakeRegistry.updateQuorum(newNumerator, newDenominator);
 
-        (uint256 numerator, uint256 denominator) = poaStakeRegistry
-            .getLastCheckpointQuorum();
+        (uint256 numerator, uint256 denominator) = poaStakeRegistry.getLastCheckpointQuorum();
         assertEq(numerator, newNumerator);
         assertEq(denominator, newDenominator);
 
@@ -331,18 +289,10 @@ contract POAStakeRegistryTest is Test {
     function test_UpdateQuorum_InvalidQuorum() public {
         vm.startPrank(owner);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidQuorum.selector
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidQuorum.selector));
         poaStakeRegistry.updateQuorum(1, 0);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidQuorum.selector
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidQuorum.selector));
         poaStakeRegistry.updateQuorum(5, 3);
 
         vm.stopPrank();
@@ -367,18 +317,11 @@ contract POAStakeRegistryTest is Test {
 
         bytes32 newKeyHash = keccak256(blsPk1);
         vm.expectEmit(true, true, true, true);
-        emit SigningKeyUpdate(
-            operator1,
-            block.number,
-            newKeyHash,
-            bytes32(0)
-        );
+        emit SigningKeyUpdate(operator1, block.number, newKeyHash, bytes32(0));
 
         _updateOperatorSigningKey(operator1, SK1, blsPk1);
 
-        bytes memory storedKey = poaStakeRegistry.getLatestOperatorSigningKey(
-            operator1
-        );
+        bytes memory storedKey = poaStakeRegistry.getLatestOperatorSigningKey(operator1);
         assertEq(keccak256(storedKey), keccak256(blsPk1));
 
         vm.stopPrank();
@@ -388,9 +331,7 @@ contract POAStakeRegistryTest is Test {
         // Call contract directly to avoid precompile calls in test helper consuming vm.prank
         vm.prank(operator1);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.OperatorNotRegistered.selector
-            )
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.OperatorNotRegistered.selector)
         );
         poaStakeRegistry.updateOperatorSigningKey(blsPk1, new bytes(256));
     }
@@ -403,9 +344,7 @@ contract POAStakeRegistryTest is Test {
         // Call contract directly to avoid precompile calls in test helper consuming vm.prank
         vm.prank(nonOperator);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.OperatorNotRegistered.selector
-            )
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.OperatorNotRegistered.selector)
         );
         poaStakeRegistry.updateOperatorSigningKey(blsPk1, new bytes(256));
     }
@@ -421,9 +360,7 @@ contract POAStakeRegistryTest is Test {
         // Same key should be a no-op
         _updateOperatorSigningKey(operator1, SK1, blsPk1);
 
-        bytes memory storedKey = poaStakeRegistry.getLatestOperatorSigningKey(
-            operator1
-        );
+        bytes memory storedKey = poaStakeRegistry.getLatestOperatorSigningKey(operator1);
         assertEq(keccak256(storedKey), keccak256(blsPk1));
 
         vm.stopPrank();
@@ -436,9 +373,7 @@ contract POAStakeRegistryTest is Test {
 
         vm.startPrank(operator1);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidBLSKeyLength.selector
-            )
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidBLSKeyLength.selector)
         );
         poaStakeRegistry.updateOperatorSigningKey(
             hex"0011", // wrong length
@@ -454,9 +389,7 @@ contract POAStakeRegistryTest is Test {
 
         vm.startPrank(operator1);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidBLSSignatureLength.selector
-            )
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidBLSSignatureLength.selector)
         );
         poaStakeRegistry.updateOperatorSigningKey(
             blsPk1,
@@ -478,16 +411,12 @@ contract POAStakeRegistryTest is Test {
 
         // Operator 2 tries to use the same key — generate proof outside prank
         bytes32 messageHash = keccak256(abi.encode(operator2));
-        bytes memory messageG2 = HashToCurve.hashToCurveG2(
-            abi.encodePacked(messageHash)
-        );
+        bytes memory messageG2 = HashToCurve.hashToCurveG2(abi.encodePacked(messageHash));
         bytes memory blsSigProof = BLS12381.sign(SK1, messageG2);
 
         vm.prank(operator2);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.SigningKeyAlreadyAssigned.selector
-            )
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.SigningKeyAlreadyAssigned.selector)
         );
         poaStakeRegistry.updateOperatorSigningKey(blsPk1, blsSigProof);
     }
@@ -542,10 +471,7 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         bytes32 keyHash = keccak256(blsPk1);
-        assertEq(
-            poaStakeRegistry.getLatestOperatorForSigningKey(keyHash),
-            operator1
-        );
+        assertEq(poaStakeRegistry.getLatestOperatorForSigningKey(keyHash), operator1);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -564,14 +490,12 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         // Test current state
-        bytes memory currentKey = poaStakeRegistry.getLatestOperatorSigningKey(
-            operator1
-        );
+        bytes memory currentKey = poaStakeRegistry.getLatestOperatorSigningKey(operator1);
         assertEq(keccak256(currentKey), keccak256(blsPk2));
 
         // Test historical data
-        bytes memory historicalKey = poaStakeRegistry
-            .getOperatorSigningKeyAtBlock(operator1, uint32(block.number - 1));
+        bytes memory historicalKey =
+            poaStakeRegistry.getOperatorSigningKeyAtBlock(operator1, uint32(block.number - 1));
         assertEq(keccak256(historicalKey), keccak256(blsPk1));
     }
 
@@ -582,15 +506,9 @@ contract POAStakeRegistryTest is Test {
         poaStakeRegistry.updateOperatorWeight(operator1, OPERATOR_WEIGHT_2);
         vm.stopPrank();
 
+        assertEq(poaStakeRegistry.getOperatorWeight(operator1), OPERATOR_WEIGHT_2);
         assertEq(
-            poaStakeRegistry.getOperatorWeight(operator1),
-            OPERATOR_WEIGHT_2
-        );
-        assertEq(
-            poaStakeRegistry.getOperatorWeightAtBlock(
-                operator1,
-                uint32(block.number - 1)
-            ),
+            poaStakeRegistry.getOperatorWeightAtBlock(operator1, uint32(block.number - 1)),
             OPERATOR_WEIGHT_1
         );
     }
@@ -603,13 +521,10 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         assertEq(
-            poaStakeRegistry.getLastCheckpointTotalWeight(),
-            OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2
+            poaStakeRegistry.getLastCheckpointTotalWeight(), OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2
         );
         assertEq(
-            poaStakeRegistry.getLastCheckpointTotalWeightAtBlock(
-                uint32(block.number - 1)
-            ),
+            poaStakeRegistry.getLastCheckpointTotalWeightAtBlock(uint32(block.number - 1)),
             OPERATOR_WEIGHT_1
         );
     }
@@ -622,9 +537,7 @@ contract POAStakeRegistryTest is Test {
 
         assertEq(poaStakeRegistry.getLastCheckpointThresholdWeight(), 1500);
         assertEq(
-            poaStakeRegistry.getLastCheckpointThresholdWeightAtBlock(
-                uint32(block.number - 1)
-            ),
+            poaStakeRegistry.getLastCheckpointThresholdWeightAtBlock(uint32(block.number - 1)),
             INITIAL_THRESHOLD_WEIGHT
         );
     }
@@ -635,13 +548,12 @@ contract POAStakeRegistryTest is Test {
         poaStakeRegistry.updateQuorum(3, 4);
         vm.stopPrank();
 
-        (uint256 num, uint256 den) = poaStakeRegistry
-            .getLastCheckpointQuorum();
+        (uint256 num, uint256 den) = poaStakeRegistry.getLastCheckpointQuorum();
         assertEq(num, 3);
         assertEq(den, 4);
 
-        (uint256 histNum, uint256 histDen) = poaStakeRegistry
-            .getLastCheckpointQuorumAtBlock(uint32(block.number - 1));
+        (uint256 histNum, uint256 histDen) =
+            poaStakeRegistry.getLastCheckpointQuorumAtBlock(uint32(block.number - 1));
         assertEq(histNum, INITIAL_QUORUM_NUMERATOR);
         assertEq(histDen, INITIAL_QUORUM_DENOMINATOR);
     }
@@ -660,25 +572,16 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
-        bytes memory messageG2 = HashToCurve.hashToCurveG2(
-            abi.encodePacked(digest)
-        );
+        bytes memory messageG2 = HashToCurve.hashToCurveG2(abi.encodePacked(digest));
         bytes memory sig = BLS12381.sign(SK1, messageG2);
 
         bytes[] memory signerPubkeys = new bytes[](1);
         signerPubkeys[0] = blsPk1;
 
         _advanceBlocks(1);
-        bytes memory signatureData = abi.encode(
-            signerPubkeys,
-            sig,
-            uint32(block.number - 1)
-        );
+        bytes memory signatureData = abi.encode(signerPubkeys, sig, uint32(block.number - 1));
 
-        bytes4 result = poaStakeRegistry.isValidSignature(
-            digest,
-            signatureData
-        );
+        bytes4 result = poaStakeRegistry.isValidSignature(digest, signatureData);
         assertEq(result, IERC1271.isValidSignature.selector);
     }
 
@@ -697,9 +600,7 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
-        bytes memory messageG2 = HashToCurve.hashToCurveG2(
-            abi.encodePacked(digest)
-        );
+        bytes memory messageG2 = HashToCurve.hashToCurveG2(abi.encodePacked(digest));
 
         // Sign with both keys
         bytes memory sig1 = BLS12381.sign(SK1, messageG2);
@@ -720,33 +621,18 @@ contract POAStakeRegistryTest is Test {
         }
 
         _advanceBlocks(1);
-        bytes memory signatureData = abi.encode(
-            signerPubkeys,
-            aggSig,
-            uint32(block.number - 1)
-        );
+        bytes memory signatureData = abi.encode(signerPubkeys, aggSig, uint32(block.number - 1));
 
-        bytes4 result = poaStakeRegistry.isValidSignature(
-            digest,
-            signatureData
-        );
+        bytes4 result = poaStakeRegistry.isValidSignature(digest, signatureData);
         assertEq(result, IERC1271.isValidSignature.selector);
     }
 
     function test_IsValidSignature_InvalidLength() public {
         bytes32 digest = keccak256("test message");
         bytes[] memory signerPubkeys = new bytes[](0);
-        bytes memory signatureData = abi.encode(
-            signerPubkeys,
-            new bytes(256),
-            uint32(0)
-        );
+        bytes memory signatureData = abi.encode(signerPubkeys, new bytes(256), uint32(0));
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidLength.selector
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidLength.selector));
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
 
@@ -770,9 +656,7 @@ contract POAStakeRegistryTest is Test {
         );
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidReferenceBlock.selector
-            )
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidReferenceBlock.selector)
         );
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
@@ -792,9 +676,7 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
-        bytes memory messageG2 = HashToCurve.hashToCurveG2(
-            abi.encodePacked(digest)
-        );
+        bytes memory messageG2 = HashToCurve.hashToCurveG2(abi.encodePacked(digest));
         bytes memory sig1 = BLS12381.sign(SK1, messageG2);
         bytes memory sig2 = BLS12381.sign(SK2, messageG2);
         bytes memory aggSig = BLS12381.g2Add(sig1, sig2);
@@ -814,17 +696,9 @@ contract POAStakeRegistryTest is Test {
         }
 
         _advanceBlocks(1);
-        bytes memory signatureData = abi.encode(
-            signerPubkeys,
-            aggSig,
-            uint32(block.number - 1)
-        );
+        bytes memory signatureData = abi.encode(signerPubkeys, aggSig, uint32(block.number - 1));
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.NotSorted.selector
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.NotSorted.selector));
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
 
@@ -838,25 +712,17 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
-        bytes memory messageG2 = HashToCurve.hashToCurveG2(
-            abi.encodePacked(digest)
-        );
+        bytes memory messageG2 = HashToCurve.hashToCurveG2(abi.encodePacked(digest));
         bytes memory sig = BLS12381.sign(SK1, messageG2);
 
         bytes[] memory signerPubkeys = new bytes[](1);
         signerPubkeys[0] = blsPk1;
 
         _advanceBlocks(1);
-        bytes memory signatureData = abi.encode(
-            signerPubkeys,
-            sig,
-            uint32(block.number - 1)
-        );
+        bytes memory signatureData = abi.encode(signerPubkeys, sig, uint32(block.number - 1));
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InsufficientSignedStake.selector
-            )
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.InsufficientSignedStake.selector)
         );
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
@@ -873,28 +739,17 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
-        bytes memory messageG2 = HashToCurve.hashToCurveG2(
-            abi.encodePacked(digest)
-        );
+        bytes memory messageG2 = HashToCurve.hashToCurveG2(abi.encodePacked(digest));
         bytes memory sig = BLS12381.sign(SK1, messageG2);
 
         bytes[] memory signerPubkeys = new bytes[](1);
         signerPubkeys[0] = blsPk1;
 
         _advanceBlocks(1);
-        bytes memory signatureData = abi.encode(
-            signerPubkeys,
-            sig,
-            uint32(block.number - 1)
-        );
+        bytes memory signatureData = abi.encode(signerPubkeys, sig, uint32(block.number - 1));
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IWavsServiceManager.InsufficientQuorum.selector,
-                1000,
-                9,
-                3000
-            )
+            abi.encodeWithSelector(IWavsServiceManager.InsufficientQuorum.selector, 1000, 9, 3000)
         );
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
@@ -909,9 +764,7 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         bytes32 digest = keccak256("test message");
-        bytes memory messageG2 = HashToCurve.hashToCurveG2(
-            abi.encodePacked(digest)
-        );
+        bytes memory messageG2 = HashToCurve.hashToCurveG2(abi.encodePacked(digest));
         // Sign with wrong key
         bytes memory wrongSig = BLS12381.sign(SK2, messageG2);
 
@@ -919,16 +772,10 @@ contract POAStakeRegistryTest is Test {
         signerPubkeys[0] = blsPk1;
 
         _advanceBlocks(1);
-        bytes memory signatureData = abi.encode(
-            signerPubkeys,
-            wrongSig,
-            uint32(block.number - 1)
-        );
+        bytes memory signatureData = abi.encode(signerPubkeys, wrongSig, uint32(block.number - 1));
 
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidBLSSignature.selector
-            )
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidBLSSignature.selector)
         );
         poaStakeRegistry.isValidSignature(digest, signatureData);
     }
@@ -946,29 +793,23 @@ contract POAStakeRegistryTest is Test {
         _updateOperatorSigningKey(operator1, SK1, blsPk1);
         vm.stopPrank();
 
-        IWavsServiceHandler.Envelope memory envelope = IWavsServiceHandler
-            .Envelope({
-                eventId: bytes20(uint160(1)),
-                ordering: bytes12(0),
-                payload: "test123"
-            });
+        IWavsServiceHandler.Envelope memory envelope = IWavsServiceHandler.Envelope({
+            eventId: bytes20(uint160(1)), ordering: bytes12(0), payload: "test123"
+        });
 
         bytes32 digest = keccak256(abi.encode(envelope));
-        bytes memory messageG2 = HashToCurve.hashToCurveG2(
-            abi.encodePacked(digest)
-        );
+        bytes memory messageG2 = HashToCurve.hashToCurveG2(abi.encodePacked(digest));
         bytes memory sig = BLS12381.sign(SK1, messageG2);
 
         bytes[] memory signerPubkeys = new bytes[](1);
         signerPubkeys[0] = blsPk1;
 
         _advanceBlocks(1);
-        IWavsServiceHandler.SignatureData memory signatureData = IWavsServiceHandler
-            .SignatureData({
-                signerPubkeys: signerPubkeys,
-                aggregateSignature: sig,
-                referenceBlock: uint32(block.number - 1)
-            });
+        IWavsServiceHandler.SignatureData memory signatureData = IWavsServiceHandler.SignatureData({
+            signerPubkeys: signerPubkeys,
+            aggregateSignature: sig,
+            referenceBlock: uint32(block.number - 1)
+        });
 
         // This should not revert
         poaStakeRegistry.validate(envelope, signatureData);
@@ -982,15 +823,11 @@ contract POAStakeRegistryTest is Test {
         vm.startPrank(owner);
 
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
-        assertEq(
-            poaStakeRegistry.getLastCheckpointTotalWeight(),
-            OPERATOR_WEIGHT_1
-        );
+        assertEq(poaStakeRegistry.getLastCheckpointTotalWeight(), OPERATOR_WEIGHT_1);
 
         poaStakeRegistry.registerOperator(operator2, OPERATOR_WEIGHT_2);
         assertEq(
-            poaStakeRegistry.getLastCheckpointTotalWeight(),
-            OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2
+            poaStakeRegistry.getLastCheckpointTotalWeight(), OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2
         );
 
         poaStakeRegistry.registerOperator(operator3, OPERATOR_WEIGHT_3);
@@ -1001,8 +838,7 @@ contract POAStakeRegistryTest is Test {
 
         poaStakeRegistry.deregisterOperator(operator2);
         assertEq(
-            poaStakeRegistry.getLastCheckpointTotalWeight(),
-            OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_3
+            poaStakeRegistry.getLastCheckpointTotalWeight(), OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_3
         );
 
         vm.stopPrank();
@@ -1020,23 +856,14 @@ contract POAStakeRegistryTest is Test {
 
         vm.stopPrank();
 
-        uint256 actualTotalWeight = poaStakeRegistry
-            .getLastCheckpointTotalWeight();
+        uint256 actualTotalWeight = poaStakeRegistry.getLastCheckpointTotalWeight();
         assertEq(actualTotalWeight, OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2 + 500);
 
-        assertEq(
-            poaStakeRegistry.getOperatorWeight(operator1),
-            OPERATOR_WEIGHT_1 + 500
-        );
-        assertEq(
-            poaStakeRegistry.getOperatorWeight(operator2),
-            OPERATOR_WEIGHT_2
-        );
+        assertEq(poaStakeRegistry.getOperatorWeight(operator1), OPERATOR_WEIGHT_1 + 500);
+        assertEq(poaStakeRegistry.getOperatorWeight(operator2), OPERATOR_WEIGHT_2);
 
         assertEq(
-            poaStakeRegistry.getLastCheckpointTotalWeightAtBlock(
-                uint32(block.number - 1)
-            ),
+            poaStakeRegistry.getLastCheckpointTotalWeightAtBlock(uint32(block.number - 1)),
             OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2 + 500
         );
     }
@@ -1044,44 +871,23 @@ contract POAStakeRegistryTest is Test {
     function test_InputParametersInvalid() public {
         vm.startPrank(owner);
         vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidThresholdWeight.selector
-            )
+            abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidThresholdWeight.selector)
         );
         poaStakeRegistry.updateStakeThreshold(0);
 
         poaStakeRegistry.registerOperator(operator1, OPERATOR_WEIGHT_1);
         poaStakeRegistry.registerOperator(operator2, OPERATOR_WEIGHT_2);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidAddressZero.selector
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidAddressZero.selector));
         poaStakeRegistry.deregisterOperator(address(0));
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidAddressZero.selector
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidAddressZero.selector));
         poaStakeRegistry.registerOperator(address(0), OPERATOR_WEIGHT_1);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidWeight.selector
-            )
-        );
-        poaStakeRegistry.updateOperatorWeight(
-            operator1,
-            uint256(type(uint160).max) + 1
-        );
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidWeight.selector));
+        poaStakeRegistry.updateOperatorWeight(operator1, uint256(type(uint160).max) + 1);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                IPOAStakeRegistryErrors.InvalidAddressZero.selector
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(IPOAStakeRegistryErrors.InvalidAddressZero.selector));
         poaStakeRegistry.updateOperatorWeight(address(0), OPERATOR_WEIGHT_1);
         vm.stopPrank();
     }
@@ -1097,32 +903,19 @@ contract POAStakeRegistryTest is Test {
         poaStakeRegistry.registerOperator(operator2, OPERATOR_WEIGHT_2);
         poaStakeRegistry.registerOperator(operator3, OPERATOR_WEIGHT_3);
 
-        poaStakeRegistry.updateOperatorWeight(
-            operator1,
-            OPERATOR_WEIGHT_1 + 100
-        );
-        poaStakeRegistry.updateOperatorWeight(
-            operator2,
-            OPERATOR_WEIGHT_2 + 200
-        );
+        poaStakeRegistry.updateOperatorWeight(operator1, OPERATOR_WEIGHT_1 + 100);
+        poaStakeRegistry.updateOperatorWeight(operator2, OPERATOR_WEIGHT_2 + 200);
 
         poaStakeRegistry.updateStakeThreshold(2000);
         poaStakeRegistry.updateQuorum(3, 4);
 
         vm.stopPrank();
 
-        uint256 expectedWeight = OPERATOR_WEIGHT_1 +
-            OPERATOR_WEIGHT_2 +
-            OPERATOR_WEIGHT_3 +
-            100 +
-            200;
-        assertEq(
-            poaStakeRegistry.getLastCheckpointTotalWeight(),
-            expectedWeight
-        );
+        uint256 expectedWeight =
+            OPERATOR_WEIGHT_1 + OPERATOR_WEIGHT_2 + OPERATOR_WEIGHT_3 + 100 + 200;
+        assertEq(poaStakeRegistry.getLastCheckpointTotalWeight(), expectedWeight);
         assertEq(poaStakeRegistry.getLastCheckpointThresholdWeight(), 2000);
-        (uint256 num, uint256 den) = poaStakeRegistry
-            .getLastCheckpointQuorum();
+        (uint256 num, uint256 den) = poaStakeRegistry.getLastCheckpointQuorum();
         assertEq(num, 3);
         assertEq(den, 4);
     }
@@ -1138,15 +931,15 @@ contract POAStakeRegistryTest is Test {
     ) internal {
         // Generate BLS proof of key ownership
         bytes32 messageHash = keccak256(abi.encode(operator));
-        bytes memory messageG2 = HashToCurve.hashToCurveG2(
-            abi.encodePacked(messageHash)
-        );
+        bytes memory messageG2 = HashToCurve.hashToCurveG2(abi.encodePacked(messageHash));
         bytes memory blsSigProof = BLS12381.sign(sk, messageG2);
 
         poaStakeRegistry.updateOperatorSigningKey(blsPk, blsSigProof);
     }
 
-    function _advanceBlocks(uint256 blocks) internal {
+    function _advanceBlocks(
+        uint256 blocks
+    ) internal {
         vm.roll(block.number + blocks);
     }
 }

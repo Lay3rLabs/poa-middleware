@@ -13,7 +13,6 @@ optimizer_runs = 100
 remappings = [
     "@openzeppelin/=node_modules/@openzeppelin/",
     "forge-std/=node_modules/forge-std/src/",
-    "@wavs/=node_modules/@wavs/solidity/contracts/",
     "src/=contracts/src/",
     "script/=contracts/script/",
 ]
@@ -34,7 +33,6 @@ optimizer_runs = 100
 remappings = [
     "@openzeppelin/=node_modules/@openzeppelin/",
     "forge-std/=node_modules/forge-std/src/",
-    "@wavs/=node_modules/@wavs/solidity/contracts/",
     "src/=contracts/src/",
     "script/=contracts/script/",
 ]

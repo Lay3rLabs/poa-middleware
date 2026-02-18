@@ -45,7 +45,7 @@ jobs:
         run: |
           FOUNDRY_PROFILE=ecdsa forge build
           FOUNDRY_PROFILE=ecdsa forge coverage --report lcov
-          lcov --remove lcov.info 'contracts/script/*' 'node_modules/*' --output-file lcov.info
+          lcov --remove lcov.info 'contracts/script/*' 'node_modules/*' --ignore-errors unused --output-file lcov.info
           genhtml -o coverage-report-ecdsa lcov.info
         id: coverage-html-ecdsa
 

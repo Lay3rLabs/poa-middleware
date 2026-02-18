@@ -6,7 +6,6 @@ USER root
 COPY contracts /wavs/contracts
 COPY node_modules/@openzeppelin /wavs/node_modules/@openzeppelin
 COPY node_modules/forge-std /wavs/node_modules/forge-std
-COPY node_modules/@wavs /wavs/node_modules/@wavs
 COPY foundry.toml /wavs/foundry.toml
 RUN cd /wavs && FOUNDRY_PROFILE=ecdsa forge build
 

@@ -79,7 +79,7 @@ contract HashToCurveTest is Test {
 
     function test_HashToCurveG2_SignatureRoundtrip() public view {
         // Full roundtrip: hash a message to G2, sign with a key, verify
-        uint256 sk = 12345;
+        uint256 sk = 12_345;
         bytes memory pubkey = BLS12381.pubkeyFromSecret(sk);
 
         bytes32 digest = keccak256("signed message");

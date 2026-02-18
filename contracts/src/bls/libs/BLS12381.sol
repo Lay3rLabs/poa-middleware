@@ -48,10 +48,12 @@ library BLS12381 {
     // @dev Each coordinate is 128 hex chars: 32 hex zero-padding + 96 hex (48-byte Fp value)
     //      G1_GENERATOR = x(128 hex) || y(128 hex) = 256 hex chars = 128 bytes
     // solhint-disable-next-line max-line-length
-    bytes internal constant G1_GENERATOR = hex"0000000000000000000000000000000017f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb0000000000000000000000000000000008b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1";
+    bytes internal constant G1_GENERATOR =
+        hex"0000000000000000000000000000000017f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb0000000000000000000000000000000008b3f481e3aaa0f1a09e30ed741d8ae4fcf5e095d5d00af600db18cb2c04b3edd03cc744a2888ae40caa232946c5e7e1";
 
     // solhint-disable-next-line max-line-length
-    bytes internal constant NEG_G1_GENERATOR = hex"0000000000000000000000000000000017f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb00000000000000000000000000000000114d1d6855d545a8aa7d76c8cf2e21f267816aef1db507c96655b9d5caac42364e6f38ba0ecb751bad54dcd6b939c2ca";
+    bytes internal constant NEG_G1_GENERATOR =
+        hex"0000000000000000000000000000000017f1d3a73197d7942695638c4fa9ac0fc3688c4f9774b905a14e3a3f171bac586c55e83ff97a1aeffb3af00adb22c6bb00000000000000000000000000000000114d1d6855d545a8aa7d76c8cf2e21f267816aef1db507c96655b9d5caac42364e6f38ba0ecb751bad54dcd6b939c2ca";
 
     // ──────────────────────────────────────────────────────────────────────────
     // Precompile wrappers
@@ -179,15 +181,14 @@ library BLS12381 {
         bool success;
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            success :=
-                staticcall(
-                    gas(),
-                    precompile,
-                    add(input, 0x20), // skip length prefix
-                    mload(input), // input length
-                    add(output, 0x20), // skip length prefix
-                    outputSize
-                )
+            success := staticcall(
+                gas(),
+                precompile,
+                add(input, 0x20), // skip length prefix
+                mload(input), // input length
+                add(output, 0x20), // skip length prefix
+                outputSize
+            )
         }
         if (!success) {
             revert PrecompileCallFailed(precompile);

@@ -187,15 +187,14 @@ library HashToCurve {
         bool success;
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            success :=
-                staticcall(
-                    gas(),
-                    0x05, // MODEXP precompile
-                    add(input, 0x20),
-                    mload(input),
-                    add(modexpResult, 0x20),
-                    48
-                )
+            success := staticcall(
+                gas(),
+                0x05, // MODEXP precompile
+                add(input, 0x20),
+                mload(input),
+                add(modexpResult, 0x20),
+                48
+            )
         }
         if (!success) {
             revert HashToCurveFailed();
@@ -212,8 +211,7 @@ library HashToCurve {
         bool success;
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            success :=
-                staticcall(gas(), 0x02, add(data, 0x20), mload(data), 0x00, 32)
+            success := staticcall(gas(), 0x02, add(data, 0x20), mload(data), 0x00, 32)
             h := mload(0x00)
         }
         if (!success) {
@@ -222,7 +220,11 @@ library HashToCurve {
     }
 
     /// @dev Copy a bytes32 value into a bytes array at a given offset.
-    function _copyBytes32(bytes memory dest, uint256 offset, bytes32 value) private pure {
+    function _copyBytes32(
+        bytes memory dest,
+        uint256 offset,
+        bytes32 value
+    ) private pure {
         // solhint-disable-next-line no-inline-assembly
         assembly {
             mstore(add(add(dest, 0x20), offset), value)

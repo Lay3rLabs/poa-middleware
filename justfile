@@ -51,7 +51,7 @@ format-check:
 coverage-html:
     FOUNDRY_PROFILE={{profile}} forge build
     FOUNDRY_PROFILE={{profile}} forge coverage --report lcov
-    lcov --remove lcov.info 'contracts/script/*' 'node_modules/*' --output-file lcov.info
+    lcov --remove lcov.info 'contracts/script/*' 'node_modules/*' --ignore-errors unused --output-file lcov.info
     genhtml -o coverage-report-{{profile}} lcov.info
 
 # Lint

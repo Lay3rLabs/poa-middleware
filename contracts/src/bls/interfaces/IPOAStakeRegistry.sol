@@ -76,11 +76,7 @@ interface IPOAStakeRegistryEvents is IPOAStakeRegistryTypes {
      * @param oldWeight The operator's weight before the update.
      * @param newWeight The operator's weight after the update.
      */
-    event OperatorWeightUpdated(
-        address indexed operator,
-        uint256 oldWeight,
-        uint256 newWeight
-    );
+    event OperatorWeightUpdated(address indexed operator, uint256 oldWeight, uint256 newWeight);
 
     /**
      * @notice Emitted when the system updates the total weight.
@@ -115,11 +111,7 @@ interface IPOAStakeRegistryEvents is IPOAStakeRegistryTypes {
  * @author Lay3r Labs
  * @notice Interface containing all functions for the BLS POAStakeRegistry contract.
  */
-interface IPOAStakeRegistry is
-    IPOAStakeRegistryErrors,
-    IPOAStakeRegistryEvents,
-    IERC1271
-{
+interface IPOAStakeRegistry is IPOAStakeRegistryErrors, IPOAStakeRegistryEvents, IERC1271 {
     /* ACTIONS */
 
     /**
@@ -127,13 +119,18 @@ interface IPOAStakeRegistry is
      * @param operator The address of the operator to register.
      * @param weight The weight of the operator.
      */
-    function registerOperator(address operator, uint256 weight) external;
+    function registerOperator(
+        address operator,
+        uint256 weight
+    ) external;
 
     /**
      * @notice Deregisters an existing operator.
      * @param operator The address of the operator to deregister.
      */
-    function deregisterOperator(address operator) external;
+    function deregisterOperator(
+        address operator
+    ) external;
 
     /**
      * @notice Updates the BLS signing key for an operator.
@@ -153,13 +150,18 @@ interface IPOAStakeRegistry is
      * @param weight The new weight to set for the operator.
      * @dev Only callable by owner.
      */
-    function updateOperatorWeight(address operator, uint256 weight) external;
+    function updateOperatorWeight(
+        address operator,
+        uint256 weight
+    ) external;
 
     /**
      * @notice Sets a new cumulative threshold weight for message validation.
      * @param thresholdWeight The updated threshold weight required to validate a message.
      */
-    function updateStakeThreshold(uint256 thresholdWeight) external;
+    function updateStakeThreshold(
+        uint256 thresholdWeight
+    ) external;
 
     /**
      * @notice Updates the quorum configuration.
@@ -203,20 +205,14 @@ interface IPOAStakeRegistry is
      * @notice Retrieves the last recorded threshold weight.
      * @return The latest threshold weight.
      */
-    function getLastCheckpointThresholdWeight()
-        external
-        view
-        returns (uint256);
+    function getLastCheckpointThresholdWeight() external view returns (uint256);
 
     /**
      * @notice Retrieves the last recorded quorum.
      * @return The latest quorum numerator.
      * @return The latest quorum denominator.
      */
-    function getLastCheckpointQuorum()
-        external
-        view
-        returns (uint256, uint256);
+    function getLastCheckpointQuorum() external view returns (uint256, uint256);
 
     /**
      * @notice Returns whether an operator is currently registered.
