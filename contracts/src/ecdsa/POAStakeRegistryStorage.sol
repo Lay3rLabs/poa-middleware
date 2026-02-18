@@ -3,7 +3,7 @@ pragma solidity ^0.8.27;
 
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {IPOAStakeRegistry} from "./interfaces/IPOAStakeRegistry.sol";
-import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
+import {IWavsServiceManager} from "./interfaces/IWavsServiceManager.sol";
 
 /**
  * @title Storage variables for the `POAStakeRegistry` contract.
