@@ -8,6 +8,7 @@ A Proof of Authority (POA) middleware system for managing operator registration,
 
 - Docker and Docker Compose
 - Foundry (Forge and Cast) for local development and testing
+- [just](https://github.com/casey/just) command runner
 - Node.js and npm for dependency management
 
 ## Testing
@@ -15,14 +16,17 @@ A Proof of Authority (POA) middleware system for managing operator registration,
 To run the test suite, make sure you have [Foundry](https://book.getfoundry.sh/) installed. Then run:
 
 ```bash
-# Run all tests
-make test
+# Run ECDSA tests (default)
+just test
 
-# Run ECDSA tests only
-make test-ecdsa
+# Run all profile tests
+just test-all
+
+# Run a single test
+just test-match testFunctionName
 
 # Generate coverage report
-make coverage-html-ecdsa
+just coverage-html
 ```
 
 ## Docker Quick Start

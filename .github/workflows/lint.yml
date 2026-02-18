@@ -42,8 +42,7 @@ jobs:
         run: npm run lint
 
       - name: Run Forge fmt
-        run: |
-          cd contracts && make format-check
+        run: forge fmt --check
         id: fmt
 
       - name: "Add lint summary"

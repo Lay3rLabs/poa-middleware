@@ -8,50 +8,56 @@ POA (Proof of Authority) middleware for WAVS/EigenLayer AVS systems. Implements 
 
 ## Build & Test Commands
 
-All Foundry commands run from the `contracts/` directory using Makefile targets:
+All commands run from the repo root. Task runner is `just` (justfile at root). Foundry config is at root `foundry.toml`.
 
 ```bash
-# Install dependencies (from repo root)
+# Install dependencies
 npm install
 
 # Build
-cd contracts && make build-ecdsa        # Build ECDSA contracts
-cd contracts && make build              # Build all profiles (bls + ecdsa)
+just build                              # Build ECDSA contracts (default profile)
+just build-all                          # Build all profiles (bls + ecdsa)
 
 # Test
-cd contracts && make test-ecdsa         # Run ECDSA tests (forge test -vv)
-cd contracts && make test               # Run all profile tests
+just test                               # Run ECDSA tests (forge test -vv)
+just test-all                           # Run all profile tests
 
 # Run a single test
-cd contracts && FOUNDRY_PROFILE=ecdsa forge test --match-test testFunctionName -vv
+just test-match testFunctionName
 
 # Gas reports
-cd contracts && make gas-ecdsa
+just gas
 
 # Coverage
-cd contracts && make coverage-html-ecdsa   # Generates HTML at coverage-report-ecdsa/
+just coverage-html                      # Generates HTML at coverage-report-ecdsa/
 
 # Formatting
-cd contracts && make format             # Auto-format with forge fmt
-cd contracts && make format-check       # Check formatting
+just format                             # Auto-format with forge fmt
+just format-check                       # Check formatting
 
-# Linting (from repo root)
-npm run lint                            # solhint on all .sol files
-npm run lint:fix                        # Auto-fix lint issues
+# Linting
+just lint                               # solhint on all .sol files
+just lint-fix                           # Auto-fix lint issues
+
+# Contract sizes
+just size
 
 # Storage layout inspection
-cd contracts && make inspect-ecdsa contract=POAStakeRegistry
+just inspect POAStakeRegistry
+
+# Direct forge commands also work from repo root
+FOUNDRY_PROFILE=ecdsa forge test --match-test testFunctionName -vv
 ```
 
 ## Architecture
 
 ### Multi-Profile Build System
 
-Foundry is configured with separate profiles in `contracts/foundry.toml`:
-- **ecdsa** — Current production profile. Source in `src/ecdsa/`, tests in `test/ecdsa/`, output in `out/ecdsa/`.
-- **bls** — Planned future profile for BLS signature verification. Same directory convention under `src/bls/`, `test/bls/`, etc.
+Foundry is configured with separate profiles in root `foundry.toml`:
+- **ecdsa** — Current production profile. Source in `contracts/src/ecdsa/`, tests in `contracts/test/ecdsa/`, output in `contracts/out/ecdsa/`.
+- **bls** — Planned future profile for BLS signature verification. Same directory convention under `contracts/src/bls/`, `contracts/test/bls/`, etc.
 
-All `make` targets are suffixed by profile (e.g., `test-ecdsa`, `build-bls`). The unsuffixed targets run both profiles.
+The default `just` profile is `ecdsa`. Override with `just profile=bls build`.
 
 ### Contract Structure
 
@@ -80,10 +86,12 @@ The Docker image provides a CLI (`scripts/cli.sh`) for deployment and operations
 
 ### Dependency Remappings
 
-Defined in `contracts/remappings.txt`. Libraries live in `node_modules/` (not Foundry's `lib/`):
-- `@openzeppelin/` → `../node_modules/@openzeppelin/`
-- `forge-std/` → `../node_modules/forge-std/src/`
-- `@wavs/` → `../node_modules/@wavs/solidity/contracts/`
+Defined inline in root `foundry.toml`. Libraries live in `node_modules/` (not Foundry's `lib/`):
+- `@openzeppelin/` → `node_modules/@openzeppelin/`
+- `forge-std/` → `node_modules/forge-std/src/`
+- `@wavs/` → `node_modules/@wavs/solidity/contracts/`
+- `src/` → `contracts/src/` (so Solidity imports like `"src/ecdsa/..."` resolve correctly)
+- `script/` → `contracts/script/`
 
 ### Formatting Conventions
 
