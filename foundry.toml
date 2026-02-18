@@ -27,9 +27,17 @@ libs = ["contracts/lib", "node_modules"]
 cache_path = "contracts/cache/bls"
 fs_permissions = [{ access = "read-write", path = "./" }, { access = "read", path = "/root/.nodes" }]
 solc = "0.8.27"
+evm_version = "prague"
 via-ir = true
 optimizer = true
 optimizer_runs = 100
+remappings = [
+    "@openzeppelin/=node_modules/@openzeppelin/",
+    "forge-std/=node_modules/forge-std/src/",
+    "@wavs/=node_modules/@wavs/solidity/contracts/",
+    "src/=contracts/src/",
+    "script/=contracts/script/",
+]
 
 [profile.ecdsa]
 src = "contracts/src/ecdsa"
