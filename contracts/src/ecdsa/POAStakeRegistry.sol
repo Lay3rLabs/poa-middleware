@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.27;
 
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {
+    OwnableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
-import {IWavsServiceHandler} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
-import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
+import {IWavsServiceHandler} from "./interfaces/IWavsServiceHandler.sol";
+import {IWavsServiceManager} from "./interfaces/IWavsServiceManager.sol";
 
 import {IPOAStakeRegistry, POAStakeRegistryStorage} from "./POAStakeRegistryStorage.sol";
 
@@ -45,7 +47,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     }
 
     /// @inheritdoc IPOAStakeRegistry
-    function registerOperator(address operator, uint256 weight) external onlyOwner {
+    function registerOperator(
+        address operator,
+        uint256 weight
+    ) external onlyOwner {
         _registerOperator(operator, weight);
     }
 
@@ -68,7 +73,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     }
 
     /// @inheritdoc IPOAStakeRegistry
-    function updateOperatorWeight(address operator, uint256 weight) external onlyOwner {
+    function updateOperatorWeight(
+        address operator,
+        uint256 weight
+    ) external onlyOwner {
         int256 delta = _updateOperatorWeight(operator, weight);
         _updateTotalWeight(delta);
     }
@@ -81,7 +89,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
     }
 
     /// @inheritdoc IPOAStakeRegistry
-    function updateQuorum(uint256 quorumNumerator, uint256 quorumDenominator) external onlyOwner {
+    function updateQuorum(
+        uint256 quorumNumerator,
+        uint256 quorumDenominator
+    ) external onlyOwner {
         _updateQuorum(quorumNumerator, quorumDenominator);
     }
 
@@ -196,7 +207,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
      * @param quorumNumerator The new quorum numerator to set and record in the history.
      * @param quorumDenominator The new quorum denominator to set and record in the history.
      */
-    function _updateQuorum(uint256 quorumNumerator, uint256 quorumDenominator) internal {
+    function _updateQuorum(
+        uint256 quorumNumerator,
+        uint256 quorumDenominator
+    ) internal {
         if (
             quorumNumerator > type(uint160).max || quorumDenominator > type(uint160).max
                 || quorumDenominator == 0 || quorumNumerator > quorumDenominator
@@ -233,7 +247,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
      * @param operator The address of the operator to register
      * @param weight The weight of the operator
      */
-    function _registerOperator(address operator, uint256 weight) internal {
+    function _registerOperator(
+        address operator,
+        uint256 weight
+    ) internal {
         if (weight == 0 || weight > type(uint160).max) {
             revert InvalidWeight();
         }
@@ -291,7 +308,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
      * @param weight The weight to set for the operator.
      * @return delta The change in weight for the operator.
      */
-    function _updateOperatorWeight(address operator, uint256 weight) internal returns (int256) {
+    function _updateOperatorWeight(
+        address operator,
+        uint256 weight
+    ) internal returns (int256) {
         if (weight > type(uint160).max) {
             revert InvalidWeight();
         }
@@ -395,7 +415,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
      * @param lastSigner The address of the last signer.
      * @param currentSigner The address of the current signer.
      */
-    function _validateSortedSigners(address lastSigner, address currentSigner) internal pure {
+    function _validateSortedSigners(
+        address lastSigner,
+        address currentSigner
+    ) internal pure {
         if (!(lastSigner < currentSigner)) {
             revert NotSorted();
         }
@@ -523,7 +546,10 @@ contract POAStakeRegistry is IERC1271, OwnableUpgradeable, POAStakeRegistryStora
      * @param signedWeight The cumulative weight of the signers that have signed the message.
      * @param referenceBlock The block number to verify the stake threshold for
      */
-    function _validateThresholdStake(uint256 signedWeight, uint32 referenceBlock) internal view {
+    function _validateThresholdStake(
+        uint256 signedWeight,
+        uint32 referenceBlock
+    ) internal view {
         uint256 totalWeight = _getTotalWeight(referenceBlock);
         if (signedWeight > totalWeight) {
             revert InvalidSignedWeight();

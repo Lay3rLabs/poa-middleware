@@ -43,13 +43,14 @@ jobs:
 
       - name: Run generate html report
         run: |
-          cd contracts
-          make coverage-html-ecdsa
+          FOUNDRY_PROFILE=ecdsa forge build
+          FOUNDRY_PROFILE=ecdsa forge coverage --report lcov
+          lcov --remove lcov.info 'contracts/script/*' 'node_modules/*' --ignore-errors unused --output-file lcov.info
+          genhtml -o coverage-report-ecdsa lcov.info
         id: coverage-html-ecdsa
 
       - name: Generate summary report
         run: |
-          cd contracts
           lcov --summary lcov.info > coverage-report-ecdsa/summary.md
           sed -i '1d' coverage-report-ecdsa/summary.md
           sed -i '/Message summary:/,$d' coverage-report-ecdsa/summary.md
@@ -63,7 +64,6 @@ jobs:
       - name: Add comment to PR
         if: github.event_name == 'pull_request' && env.GH_TOKEN != ''
         run: |
-          cd contracts
           gh pr comment $PR_NUMBER --body-file coverage-report-ecdsa/summary.md
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -71,6 +71,5 @@ jobs:
 
       - name: Publish coverage in build summary
         run: |
-          cd contracts
           cat coverage-report-ecdsa/summary.md >> $GITHUB_STEP_SUMMARY
         shell: bash

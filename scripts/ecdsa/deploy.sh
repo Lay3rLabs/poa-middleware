@@ -40,8 +40,7 @@ ensure_balance "$deployer_address"
 
 echo "Deployer address: $deployer_address configured for $DEPLOY_ENV environment"
 
-cd contracts || handle_error "Failed to change to contracts directory"
-forge script script/ecdsa/POAMiddlewareDeployer.s.sol --rpc-url "$RPC_URL" --private-key "$FUNDED_KEY" -vvv --broadcast --skip-simulation || handle_error "Failed to deploy POAMiddlewareDeployer"
+forge script contracts/script/ecdsa/POAMiddlewareDeployer.s.sol --rpc-url "$RPC_URL" --private-key "$FUNDED_KEY" -vvv --broadcast --skip-simulation || handle_error "Failed to deploy POAMiddlewareDeployer"
 
 echo "Middleware contracts deployed with addresses:"
 cat deployments/poa-ecdsa/poa_deploy.json | jq .addresses

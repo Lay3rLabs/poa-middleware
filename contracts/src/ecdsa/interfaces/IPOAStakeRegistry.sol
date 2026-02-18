@@ -115,7 +115,10 @@ interface IPOAStakeRegistry is IPOAStakeRegistryErrors, IPOAStakeRegistryEvents,
      * @param operator The address of the operator to register.
      * @param weight The weight of the operator.
      */
-    function registerOperator(address operator, uint256 weight) external;
+    function registerOperator(
+        address operator,
+        uint256 weight
+    ) external;
 
     /**
      * @notice Deregisters an existing operator.
@@ -142,7 +145,10 @@ interface IPOAStakeRegistry is IPOAStakeRegistryErrors, IPOAStakeRegistryEvents,
      * @param weight The new weight to set for the operator.
      * @dev Only callable by owner.
      */
-    function updateOperatorWeight(address operator, uint256 weight) external;
+    function updateOperatorWeight(
+        address operator,
+        uint256 weight
+    ) external;
 
     /**
      * @notice Sets a new cumulative threshold weight for message validation.
@@ -157,7 +163,10 @@ interface IPOAStakeRegistry is IPOAStakeRegistryErrors, IPOAStakeRegistryEvents,
      * @param quorumNumerator The new quorum numerator.
      * @param quorumDenominator The new quorum denominator.
      */
-    function updateQuorum(uint256 quorumNumerator, uint256 quorumDenominator) external;
+    function updateQuorum(
+        uint256 quorumNumerator,
+        uint256 quorumDenominator
+    ) external;
 
     /* VIEW */
 

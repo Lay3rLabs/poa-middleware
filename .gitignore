@@ -15,3 +15,13 @@ yarn.lock
 docker/.nodes
 
 .nodes/
+
+# Foundry artifacts
+contracts/out/
+contracts/cache/
+out/
+cache/
+lcov.info
+coverage-report-*/
+broadcast/
+deployments/

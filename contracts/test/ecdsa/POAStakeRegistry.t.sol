@@ -4,8 +4,8 @@ pragma solidity ^0.8.27;
 import {Test} from "forge-std/Test.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
 import {IERC1271} from "@openzeppelin/contracts/interfaces/IERC1271.sol";
-import {IWavsServiceManager} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceManager.sol";
-import {IWavsServiceHandler} from "@wavs/src/eigenlayer/ecdsa/interfaces/IWavsServiceHandler.sol";
+import {IWavsServiceManager} from "../../src/ecdsa/interfaces/IWavsServiceManager.sol";
+import {IWavsServiceHandler} from "../../src/ecdsa/interfaces/IWavsServiceHandler.sol";
 import {Vm} from "forge-std/Vm.sol";
 
 import {POAStakeRegistry} from "src/ecdsa/POAStakeRegistry.sol";
@@ -679,9 +679,7 @@ contract POAStakeRegistryTest is Test {
         vm.stopPrank();
 
         IWavsServiceHandler.Envelope memory envelope = IWavsServiceHandler.Envelope({
-            eventId: bytes20(uint160(1)),
-            ordering: bytes12(0),
-            payload: "test123"
+            eventId: bytes20(uint160(1)), ordering: bytes12(0), payload: "test123"
         });
 
         bytes32 messageHash = keccak256(abi.encode(envelope));
@@ -696,9 +694,7 @@ contract POAStakeRegistryTest is Test {
 
         _advanceBlocks(1);
         IWavsServiceHandler.SignatureData memory signatureData = IWavsServiceHandler.SignatureData({
-            signers: signers,
-            signatures: signatures,
-            referenceBlock: uint32(block.number - 1)
+            signers: signers, signatures: signatures, referenceBlock: uint32(block.number - 1)
         });
 
         // This should not revert

@@ -1,0 +1,56 @@
+[profile.default]
+src = "contracts/src"
+test = "contracts/test"
+script = "contracts/script"
+out = "contracts/out"
+libs = ["contracts/lib", "node_modules"]
+fs_permissions = [{ access = "read-write", path = "./" }, { access = "read", path = "/root/.nodes" }]
+solc = "0.8.27"
+via-ir = true
+optimizer = true
+optimizer_runs = 100
+ # Higher number optimizes for frequent contract calls, lower number optimizes for deployment cost
+remappings = [
+    "@openzeppelin/=node_modules/@openzeppelin/",
+    "forge-std/=node_modules/forge-std/src/",
+    "src/=contracts/src/",
+    "script/=contracts/script/",
+]
+
+[profile.bls]
+src = "contracts/src/bls"
+test = "contracts/test/bls"
+script = "contracts/script/bls"
+out = "contracts/out/bls"
+libs = ["contracts/lib", "node_modules"]
+cache_path = "contracts/cache/bls"
+fs_permissions = [{ access = "read-write", path = "./" }, { access = "read", path = "/root/.nodes" }]
+solc = "0.8.27"
+evm_version = "prague"
+via-ir = true
+optimizer = true
+optimizer_runs = 100
+remappings = [
+    "@openzeppelin/=node_modules/@openzeppelin/",
+    "forge-std/=node_modules/forge-std/src/",
+    "src/=contracts/src/",
+    "script/=contracts/script/",
+]
+
+[profile.ecdsa]
+src = "contracts/src/ecdsa"
+test = "contracts/test/ecdsa"
+script = "contracts/script/ecdsa"
+out = "contracts/out/ecdsa"
+libs = ["contracts/lib", "node_modules"]
+cache_path = "contracts/cache/ecdsa"
+fs_permissions = [{ access = "read-write", path = "./" }, { access = "read", path = "/root/.nodes" }]
+solc = "0.8.27"
+via-ir = true
+optimizer = true
+optimizer_runs = 100
+
+[fmt]
+line_length = 100
+multiline_func_header = "params_first"
+number_underscore = "thousands"
